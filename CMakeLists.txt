@@ -1,11 +1,20 @@
 cmake_minimum_required(VERSION 3.9)
-project(voxel_native C)
+project(voxel_game C)
 
 set(CMAKE_C_STANDARD 11)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
-add_executable(voxel_native main.c)
+add_executable(${PROJECT_NAME}
+        main.c
+        src/voxel_game.h
+        src/voxel_game.c
+        src/voxel_game.c
+        src/error.h
+        src/log.h
+        )
+
+include_directories(src)
 
 # glfw
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
