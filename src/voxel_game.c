@@ -2,11 +2,17 @@
 #include "voxel_game.h"
 #include "log.h"
 
+void error_callback(int error, const char *description) {
+    LOG_ERROR("%d: %s", error, description);
+}
+
 ERR game_init(struct voxel_game *game, int width, int height) {
     if (!glfwInit()) {
         LOG_ERROR("failed to init glfw");
         return ERR_FAIL;
     }
+
+    glfwSetErrorCallback(error_callback);
 
     // window config
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -30,10 +36,25 @@ ERR game_init(struct voxel_game *game, int width, int height) {
     return ERR_SUCC;
 }
 
-void game_start(struct voxel_game *game) {
+static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
+}
 
+void game_start(struct voxel_game *game) {
+    glfwSetKeyCallback(game->window, key_callback);
+
+    glClearColor(0.1, 0.1, 0.3, 1.0);
+    while (!glfwWindowShouldClose(game->window)) {
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        glfwSwapBuffers(game->window);
+        glfwPollEvents();
+    }
 }
 
 void game_destroy(struct voxel_game *game) {
-
+    glfwDestroyWindow(game->window);
+    game->window = NULL;
+    glfwTerminate();
 }

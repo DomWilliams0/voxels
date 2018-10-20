@@ -25,3 +25,10 @@ if (GLFW_FOUND)
     include_directories(${GLFW_INCLUDE_DIR})
     target_link_libraries(${PROJECT_NAME} ${GLFW_LIBRARIES})
 endif ()
+
+# opengl
+find_package(OpenGL REQUIRED)
+if (OPENGL_FOUND)
+    include_directories(${PROJECT_NAME} ${OPENGL_INCLUDE_DIR})
+    target_link_libraries(${PROJECT_NAME} ${OPENGL_gl_LIBRARY})
+endif ()
