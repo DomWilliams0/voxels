@@ -14,7 +14,7 @@ set(SRCS
         src/log.h
         src/renderer.c src/renderer.h)
 
-file(GLOB LIB_SRCS lib/gclm/src)
+file(GLOB LIB_SRCS lib/gclm/src/* lib/vec/src/*)
 
 add_executable(${PROJECT_NAME} ${SRCS} ${LIB_SRCS})
 
@@ -39,6 +39,9 @@ endif ()
 
 # cglm
 include_directories(lib/cglm/include)
+
+# vec
+include_directories(lib/vec/src)
 
 # math
 target_link_libraries(${PROJECT_NAME} m)

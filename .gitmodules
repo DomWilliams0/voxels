@@ -1,3 +1,6 @@
 [submodule "lib/cglm"]
 	path = lib/cglm
 	url = https://github.com/recp/cglm
+[submodule "lib/vec"]
+	path = lib/vec
+	url = https://github.com/rxi/vec
