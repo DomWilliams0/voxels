@@ -1,9 +1,15 @@
 #include <GLFW/glfw3.h>
 #include "voxel_game.h"
 #include "log.h"
+#include "renderer.h"
 
-void error_callback(int error, const char *description) {
+static void error_callback(int error, const char *description) {
     LOG_ERROR("%d: %s", error, description);
+}
+
+static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
 }
 
 ERR game_init(struct voxel_game *game, int width, int height) {
@@ -13,7 +19,6 @@ ERR game_init(struct voxel_game *game, int width, int height) {
     }
 
     glfwSetErrorCallback(error_callback);
-
     // window config
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -26,27 +31,22 @@ ERR game_init(struct voxel_game *game, int width, int height) {
         return ERR_FAIL;
     }
 
+    glfwSetKeyCallback(game->window, key_callback);
+    glfwSetWindowSizeCallback(game->window, resize_callback);
+
     glfwMakeContextCurrent(game->window);
-
-    // vsync
-    glfwSwapInterval(1);
-
+    glfwSwapInterval(1); // vsync
     glfwShowWindow(game->window);
+
+    renderer_init(width, height);
 
     return ERR_SUCC;
 }
 
-static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, GLFW_TRUE);
-}
-
 void game_start(struct voxel_game *game) {
-    glfwSetKeyCallback(game->window, key_callback);
 
-    glClearColor(0.1, 0.1, 0.3, 1.0);
     while (!glfwWindowShouldClose(game->window)) {
-        glClear(GL_COLOR_BUFFER_BIT);
+        render();
 
         glfwSwapBuffers(game->window);
         glfwPollEvents();
