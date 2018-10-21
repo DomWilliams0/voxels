@@ -12,7 +12,7 @@ set(SRCS
         src/voxel_game.c
         src/error.h
         src/log.h
-        src/renderer.c src/renderer.h)
+        src/renderer.c src/renderer.h src/world.c src/world.h src/chunk_mesh.c src/chunk_mesh.h)
 
 file(GLOB LIB_SRCS lib/gclm/src/* lib/vec/src/*)
 

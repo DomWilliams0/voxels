@@ -2,6 +2,7 @@
 #include "voxel_game.h"
 #include "log.h"
 #include "renderer.h"
+#include "world.h"
 
 static void error_callback(int error, const char *description) {
     LOG_ERROR("%d: %s", error, description);
@@ -44,6 +45,11 @@ ERR game_init(struct voxel_game *game, int width, int height) {
 }
 
 void game_start(struct voxel_game *game) {
+    struct world *world;
+    if (!world_load_demo(&world, "demo")) {
+        LOG_ERROR("failed to load world");
+        return;
+    }
 
     while (!glfwWindowShouldClose(game->window)) {
         render();
@@ -51,6 +57,8 @@ void game_start(struct voxel_game *game) {
         glfwSwapBuffers(game->window);
         glfwPollEvents();
     }
+
+    world_destroy(world);
 }
 
 void game_destroy(struct voxel_game *game) {
