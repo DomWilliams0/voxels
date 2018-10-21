@@ -9,9 +9,7 @@ set(SRCS
         log.h
         renderer.c renderer.h world.c world.h chunk_mesh.c chunk_mesh.h)
 
-set(LIB ../lib)
 file(GLOB LIB_SRCS ${LIB}/gclm/src/* ${LIB}/vec/src/*)
-
 add_library(${PROJECT_NAME} ${SRCS} ${LIB_SRCS})
 
 include_directories(.)
@@ -33,11 +31,8 @@ if (OPENGL_FOUND)
     target_link_libraries(${PROJECT_NAME} ${OPENGL_gl_LIBRARY})
 endif ()
 
-# cglm
-include_directories(${LIB}/cglm/include)
-
-# vec
-include_directories(${LIB}/vec/src)
+# cglm and vec
+include_directories(${LIB_INCS})
 
 # math
 target_link_libraries(${PROJECT_NAME} m)

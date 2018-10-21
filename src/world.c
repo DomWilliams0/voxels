@@ -136,10 +136,12 @@ ERR world_load_demo(struct world **world, const char *name) {
 
     world_init(w);
 
-    world_add_chunk(w, (ivec3) {0, 0, 0});
-    world_set_block(w, (ivec3) {1, 1, 1}, BLOCK_GROUND);
-
     // TODO actually use name
+    if (strcmp(name, "empty") != 0) {
+        world_add_chunk(w, (ivec3) {0, 0, 0});
+        world_set_block(w, (ivec3) {1, 1, 1}, BLOCK_GROUND);
+    }
+
 
     *world = w;
     return ERR_SUCC;
