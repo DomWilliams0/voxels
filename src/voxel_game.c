@@ -39,7 +39,7 @@ ERR game_init(struct voxel_game *game, int width, int height) {
     glfwSwapInterval(1); // vsync
     glfwShowWindow(game->window);
 
-    renderer_init(width, height);
+    renderer_init(&game->renderer, width, height);
 
     return ERR_SUCC;
 }
@@ -51,14 +51,17 @@ void game_start(struct voxel_game *game) {
         return;
     }
 
+    game->renderer.world = world;
+
     while (!glfwWindowShouldClose(game->window)) {
-        render();
+        render(&game->renderer);
 
         glfwSwapBuffers(game->window);
         glfwPollEvents();
     }
 
     world_destroy(world);
+    game->renderer.world = NULL; // TODO destroy renderer?
 }
 
 void game_destroy(struct voxel_game *game) {

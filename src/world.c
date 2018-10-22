@@ -21,7 +21,8 @@ struct block {
 
 struct chunk {
     ivec3 pos;
-    chunk_vbo vbo;
+    int vbo;
+    int flags;
 
     struct block blocks[BLOCKS_PER_CHUNK];
 
@@ -55,6 +56,7 @@ static struct chunk *chunk_alloc() {
         LOG_ERROR("failed to alloc chunk");
     } else {
         chunk->vbo = 0;
+        chunk->flags = CHUNK_FLAG_NEW | CHUNK_FLAG_DIRTY;
         glm_ivec_zero(chunk->pos);
     }
     return chunk;
@@ -157,4 +159,38 @@ void world_destroy(struct world *world) {
             }
         vec_deinit(&world->chunks);
     }
+}
+
+int chunk_has_flag(struct chunk *chunk, enum chunk_flag flag) {
+    return (chunk->flags & flag) == flag;
+}
+
+int *chunk_vbo(struct chunk *chunk) {
+    return &chunk->vbo;
+}
+
+void world_chunks_first(struct world *world, struct chunk_iterator *it) {
+    if (world->chunks.length > 0) {
+        it->_progress = 1;
+        it->current = vec_first(&world->chunks);
+    } else {
+        it->current = NULL;
+    }
+}
+
+void world_chunks_next(struct world *world, struct chunk_iterator *it) {
+    if (it->_progress < world->chunks.length) {
+        it->current = world->chunks.data[it->_progress++];
+    } else {
+        it->current = NULL;
+    }
+}
+
+void world_chunks_clear_dirty(struct world *world) {
+    int i;
+    struct chunk *c;
+    int to_clear = ~(CHUNK_FLAG_NEW | CHUNK_FLAG_DIRTY);
+    vec_foreach(&world->chunks, c, i) {
+            c->flags &= to_clear;
+        }
 }

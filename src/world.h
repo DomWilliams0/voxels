@@ -11,9 +11,33 @@
 #define CHUNK_HEIGHT (1<<CHUNK_HEIGHT_SHIFT)
 
 struct world;
+struct chunk;
 
 ERR world_load_demo(struct world **world, const char *name);
 
 void world_destroy(struct world *world);
+
+enum chunk_flag {
+    CHUNK_FLAG_NEW = 1 << 0,
+    CHUNK_FLAG_VISIBLE = 1 << 1,
+    CHUNK_FLAG_DIRTY = 1 << 2
+};
+
+
+// `current` will be NULL if finished/invalid
+struct chunk_iterator {
+    struct chunk *current;
+    int _progress;
+};
+
+int chunk_has_flag(struct chunk *chunk, enum chunk_flag flag);
+
+int *chunk_vbo(struct chunk *chunk);
+
+void world_chunks_first(struct world *world, struct chunk_iterator *it);
+
+void world_chunks_next(struct world *world, struct chunk_iterator *it);
+
+void world_chunks_clear_dirty(struct world *world);
 
 #endif

@@ -22,6 +22,20 @@ START_TEST (test_world)
         ck_assert_ptr_nonnull(b);
         ck_assert(b->type == BLOCK_GROUND);
 
+        struct chunk_iterator it;
+        world_chunks_first(world, &it);
+        ck_assert_ptr_nonnull(it.current);
+        ck_assert(chunk_has_flag(it.current, CHUNK_FLAG_NEW));
+        ck_assert(chunk_has_flag(it.current, CHUNK_FLAG_DIRTY));
+
+        world_chunks_clear_dirty(world);
+        ck_assert(!chunk_has_flag(it.current, CHUNK_FLAG_NEW));
+        ck_assert(!chunk_has_flag(it.current, CHUNK_FLAG_DIRTY));
+
+        world_chunks_next(world, &it);
+        ck_assert_ptr_null(it.current);
+
+
         world_destroy(world);
     }
 END_TEST
