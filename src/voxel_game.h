@@ -1,12 +1,12 @@
 #ifndef VOXEL_GAME_GAME_H
 #define VOXEL_GAME_GAME_H
 
-#include <GLFW/glfw3.h>
+#include <SDL2/SDL.h>
 #include "renderer.h"
 #include "error.h"
 
 struct voxel_game {
-    GLFWwindow *window;
+    SDL_Window *window;
     struct renderer renderer;
 };
 

@@ -1,7 +1,6 @@
 #ifndef VOXEL_GAME_RENDERER_H
 #define VOXEL_GAME_RENDERER_H
 
-#include <GLFW/glfw3.h>
 #include "chunk_mesh.h"
 
 struct renderer {
@@ -14,7 +13,7 @@ void renderer_init(struct renderer *renderer, int width, int height);
 
 void render(struct renderer *renderer);
 
-void resize_callback(GLFWwindow *window, int width, int height);
+void resize_callback(int width, int height);
 
 
 #endif

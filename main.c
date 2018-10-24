@@ -5,6 +5,7 @@ int main() {
     struct voxel_game game;
 
     if (!game_init(&game, 800, 600)) {
+        game_destroy(&game);
         exit(1);
     }
 

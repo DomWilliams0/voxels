@@ -1,3 +1,7 @@
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_opengl.h>
+
+
 #include "renderer.h"
 #include "cglm/cglm.h"
 #include "world.h"
@@ -63,8 +67,7 @@ void render(struct renderer *renderer) {
             (vec4 *) &proj);
 }
 
-void resize_callback(GLFWwindow *window, int width, int height) {
+void resize_callback(int width, int height) {
     window_width = width;
     window_height = height;
 }
-
