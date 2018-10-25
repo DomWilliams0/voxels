@@ -5,20 +5,6 @@
 #include "log.h"
 #include "chunk_mesh.h"
 
-#define BLOCKS_PER_CHUNK CHUNK_WIDTH * CHUNK_DEPTH * CHUNK_HEIGHT
-
-enum block_type {
-    BLOCK_AIR = 0,
-    BLOCK_GROUND = 1,
-    BLOCK_OBJECT = 2,
-};
-
-struct block {
-    enum block_type type;
-    // TODO face visibility
-    // TODO ambient occlusion
-};
-
 struct chunk {
     ivec3 pos;
     int vbo;
@@ -193,4 +179,8 @@ void world_chunks_clear_dirty(struct world *world) {
     vec_foreach(&world->chunks, c, i) {
             c->flags &= to_clear;
         }
+}
+
+void chunk_get_block_idx(struct chunk *chunk, int idx, struct block *out) {
+   *out = chunk->blocks[idx];
 }

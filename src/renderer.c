@@ -6,7 +6,6 @@
 #include "cglm/cglm.h"
 #include "world.h"
 
-
 #define PI 3.141592f
 
 #define deg_to_rad(deg) ((deg) * PI / 180.0f)
@@ -28,7 +27,19 @@ void renderer_init(struct renderer *renderer, int width, int height) {
     glGenVertexArrays(1, &renderer->world_vao);
 }
 
-static void update_chunks(struct renderer *renderer) {
+void render(struct renderer *renderer) {
+
+    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+    glViewport(0, 0, window_width, window_height);
+
+    mat4 proj;
+    glm_perspective(
+            deg_to_rad(45),
+            ((float) window_width) / window_height,
+            0.1,
+            50,
+            (vec4 *) &proj);
+
     struct chunk_iterator it;
     world_chunks_first(renderer->world, &it);
 
@@ -41,8 +52,12 @@ static void update_chunks(struct renderer *renderer) {
 
         if (chunk_has_flag(it.current, CHUNK_FLAG_DIRTY)) {
             // TODO generate mesh
-//            glBindBuffer(GL_ARRAY_BUFFER, *vbo)
-//            glBufferData(GL_ARRAY_BUFFER, mesh, GL_STATIC_DRAW)
+            glBindBuffer(GL_ARRAY_BUFFER, vbo);
+            glBufferData(GL_ARRAY_BUFFER, chunk_mesh_gen(it.current), GL_STATIC_DRAW);
+        }
+
+        if (chunk_has_flag(it.current, CHUNK_FLAG_VISIBLE)) {
+
         }
 
         world_chunks_next(renderer->world, &it);
@@ -50,21 +65,6 @@ static void update_chunks(struct renderer *renderer) {
 
     // TODO flags are needed in tick too
     world_chunks_clear_dirty(renderer->world);
-}
-
-void render(struct renderer *renderer) {
-    update_chunks(renderer);
-
-    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-    glViewport(0, 0, window_width, window_height);
-
-    mat4 proj;
-    glm_perspective(
-            deg_to_rad(45),
-            ((float) window_width) / window_height,
-            0.1,
-            50,
-            (vec4 *) &proj);
 }
 
 void resize_callback(int width, int height) {

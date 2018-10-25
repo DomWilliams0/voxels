@@ -10,6 +10,9 @@
 #define CHUNK_DEPTH (CHUNK_WIDTH)
 #define CHUNK_HEIGHT (1<<CHUNK_HEIGHT_SHIFT)
 
+#define BLOCKS_PER_CHUNK (CHUNK_WIDTH * CHUNK_DEPTH * CHUNK_HEIGHT)
+
+
 struct world;
 struct chunk;
 
@@ -39,5 +42,20 @@ void world_chunks_first(struct world *world, struct chunk_iterator *it);
 void world_chunks_next(struct world *world, struct chunk_iterator *it);
 
 void world_chunks_clear_dirty(struct world *world);
+
+enum block_type {
+    BLOCK_AIR = 0,
+    BLOCK_GROUND = 1,
+    BLOCK_OBJECT = 2,
+};
+
+struct block {
+    enum block_type type;
+    // TODO face visibility
+    // TODO ambient occlusion
+};
+
+
+void chunk_get_block_idx(struct chunk *chunk, int idx, struct block *out);
 
 #endif

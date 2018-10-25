@@ -1,5 +1,6 @@
 #include <check.h>
 #include "world.c"
+#include "chunk_mesh.c"
 
 START_TEST (test_world)
     {
@@ -40,10 +41,28 @@ START_TEST (test_world)
     }
 END_TEST
 
+START_TEST(test_mesh)
+    {
+        ivec3 vec;
+        expand_flat_index(0, vec);
+        ck_assert(vec[0] == 0 && vec[1] == 0 && vec[2] == 0);
+
+        expand_flat_index(4719, vec);
+        ck_assert(vec[0] == 15 && vec[1] == 19 && vec[2] == 4);
+
+        expand_flat_index(32625, vec);
+        ck_assert(vec[0] == 17 && vec[1] == 27 && vec[2] == 31);
+    }
+END_TEST
+
 Suite *str_suite(void) {
     Suite *suite = suite_create("world");
-    TCase *tcase = tcase_create("case");
+    TCase *tcase = tcase_create("world");
     tcase_add_test(tcase, test_world);
+    suite_add_tcase(suite, tcase);
+
+    tcase = tcase_create("mesh");
+    tcase_add_test(tcase, test_mesh);
     suite_add_tcase(suite, tcase);
     return suite;
 }
