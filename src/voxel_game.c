@@ -37,7 +37,9 @@ ERR game_init(struct voxel_game *game, int width, int height) {
         return ERR_FAIL;
     }
 
-    renderer_init(&game->renderer, width, height);
+    if (!renderer_init(&game->renderer, width, height))
+        return ERR_FAIL;
+
     return ERR_SUCC;
 }
 

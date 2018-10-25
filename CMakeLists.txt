@@ -10,7 +10,7 @@ set(LIB_INCS ${LIB}/cglm/include ${LIB}/vec/src)
 
 add_executable(${PROJECT_NAME} main.c)
 target_link_libraries(${PROJECT_NAME} voxel_lib)
-include_directories(${PROJECT_NAME} src)
+include_directories(src)
 
 add_subdirectory(src)
 enable_testing()

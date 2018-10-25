@@ -1,7 +1,7 @@
 #ifndef VOXEL_GAME_RENDERER_H
 #define VOXEL_GAME_RENDERER_H
 
-#include "chunk_mesh.h"
+#include "error.h"
 
 struct renderer {
     struct world *world;
@@ -9,7 +9,7 @@ struct renderer {
     int world_program;
 };
 
-void renderer_init(struct renderer *renderer, int width, int height);
+ERR renderer_init(struct renderer *renderer, int width, int height);
 
 void render(struct renderer *renderer);
 

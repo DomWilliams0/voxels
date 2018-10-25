@@ -42,7 +42,7 @@ static struct chunk *chunk_alloc() {
         LOG_ERROR("failed to alloc chunk");
     } else {
         chunk->vbo = 0;
-        chunk->flags = CHUNK_FLAG_NEW | CHUNK_FLAG_DIRTY;
+        chunk->flags = CHUNK_FLAG_NEW | CHUNK_FLAG_DIRTY | CHUNK_FLAG_VISIBLE;
         glm_ivec_zero(chunk->pos);
     }
     return chunk;
@@ -127,7 +127,8 @@ ERR world_load_demo(struct world **world, const char *name) {
     // TODO actually use name
     if (strcmp(name, "empty") != 0) {
         world_add_chunk(w, (ivec3) {0, 0, 0});
-        world_set_block(w, (ivec3) {1, 1, 1}, BLOCK_GROUND);
+        world_set_block(w, (ivec3) {0, 0, 0}, BLOCK_GROUND);
+        world_set_block(w, (ivec3) {1, 0, 1}, BLOCK_OBJECT);
     }
 
 
@@ -181,6 +182,18 @@ void world_chunks_clear_dirty(struct world *world) {
         }
 }
 
+int block_type_colour(enum block_type type) {
+    switch (type) {
+        case BLOCK_AIR: return 0xffffffff;
+        case BLOCK_GROUND: return 0xffff0000;
+        case BLOCK_OBJECT: return 0xff0000ff;
+    }
+}
+
 void chunk_get_block_idx(struct chunk *chunk, int idx, struct block *out) {
    *out = chunk->blocks[idx];
+}
+
+void chunk_get_pos(struct chunk *chunk, ivec3 out) {
+    glm_ivec_copy(chunk->pos, out);
 }

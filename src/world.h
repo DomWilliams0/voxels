@@ -2,6 +2,7 @@
 #define VOXEL_GAME_WORLD_H
 
 #include "error.h"
+#include <cglm/cglm.h>
 
 #define CHUNK_WIDTH_SHIFT 5
 #define CHUNK_HEIGHT_SHIFT 5
@@ -49,6 +50,9 @@ enum block_type {
     BLOCK_OBJECT = 2,
 };
 
+// rgba reversed so abgr
+int block_type_colour(enum block_type type);
+
 struct block {
     enum block_type type;
     // TODO face visibility
@@ -57,5 +61,7 @@ struct block {
 
 
 void chunk_get_block_idx(struct chunk *chunk, int idx, struct block *out);
+
+void chunk_get_pos(struct chunk *chunk, ivec3 out);
 
 #endif

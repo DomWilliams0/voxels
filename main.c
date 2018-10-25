@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 int main() {
-    struct voxel_game game;
+    struct voxel_game game = {0};
 
     if (!game_init(&game, 800, 600)) {
         game_destroy(&game);
