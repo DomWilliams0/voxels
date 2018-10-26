@@ -9,9 +9,11 @@ struct renderer {
     int world_program;
 };
 
+struct camera;
+
 ERR renderer_init(struct renderer *renderer, int width, int height);
 
-void render(struct renderer *renderer);
+void render(struct renderer *renderer, struct camera *camera);
 
 void resize_callback(int width, int height);
 

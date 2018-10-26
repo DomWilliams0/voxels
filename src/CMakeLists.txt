@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.9)
 project(voxel_lib C CXX)
 
-set(SRCS voxel_game.h voxel_game.c error.h log.h renderer.c renderer.h world.c world.h chunk_mesh.c chunk_mesh.h face.h face.c)
+set(SRCS voxel_game.h voxel_game.c error.h log.h renderer.c renderer.h world.c world.h chunk_mesh.c chunk_mesh.h face.h face.c camera.c camera.h)
 
 # resources
 file(COPY ../res DESTINATION ${CMAKE_BINARY_DIR})

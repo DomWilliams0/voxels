@@ -6,14 +6,9 @@
 #include "chunk_mesh.h"
 #include "world.h"
 #include "log.h"
-
-#define PI 3.141592f
-
-#define deg_to_rad(deg) ((deg) * PI / 180.0f)
-#define rad_to_deg(rad) ((rad * 180.0f / PI)
+#include "camera.h"
 
 static int window_width, window_height;
-
 
 /** returns 0 if invalid **/
 static int load_shader(const char *filename, int type);
@@ -63,7 +58,7 @@ ERR renderer_init(struct renderer *renderer, int width, int height) {
     return ERR_SUCC;
 }
 
-void render(struct renderer *renderer) {
+void render(struct renderer *renderer, struct camera *camera) {
 
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     glViewport(0, 0, window_width, window_height);
@@ -74,22 +69,13 @@ void render(struct renderer *renderer) {
     {
         mat4 proj;
         glm_perspective(
-                deg_to_rad(45),
+                glm_rad(45),
                 ((float) window_width) / window_height,
                 0.1,
                 50,
                 (vec4 *) &proj);
         int loc = glGetUniformLocation(renderer->world_program, "projection");
         glUniformMatrix4fv(loc, 1, GL_FALSE, &proj);
-    }
-
-    // camera view
-    mat4 view;
-    {
-        vec3 eye = {-4, 0, 0};
-        vec3 centre = {0, 1, 0.5};
-        vec3 up = {0, 1, 0};
-        glm_lookat(eye, centre, up, view);
     }
 
     struct chunk_iterator it;
@@ -133,8 +119,11 @@ void render(struct renderer *renderer) {
             glEnableVertexAttribArray(2);
 
 
-            // TODO offset view by chunk coords
             {
+                mat4 view;
+                glm_mat4_copy(camera->transform, view);
+                // TODO offset view by chunk coords
+
                 int loc = glGetUniformLocation(renderer->world_program, "view");
                 glUniformMatrix4fv(loc, 1, GL_FALSE, &view);
             }

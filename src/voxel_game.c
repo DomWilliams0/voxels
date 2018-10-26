@@ -3,6 +3,7 @@
 #include "voxel_game.h"
 #include "log.h"
 #include "renderer.h"
+#include "camera.h"
 #include "world.h"
 
 static int game_running = 1;
@@ -49,8 +50,10 @@ void game_start(struct voxel_game *game) {
         LOG_ERROR("failed to load world");
         return;
     }
-
     game->renderer.world = world;
+
+    struct camera camera;
+    camera_init(&camera, (vec3) {-2, 0, 0}, (vec3) {-0.3f, 0, 1});
 
     SDL_Event evt;
     while (game_running) {
@@ -62,17 +65,29 @@ void game_start(struct voxel_game *game) {
                 case SDL_KEYDOWN:
                 case SDL_KEYUP:
                     key_callback(evt.key.type == SDL_KEYDOWN, evt.key.keysym.sym);
+                    break;
+
+                case SDL_MOUSEMOTION:
+                    if (evt.motion.state & SDL_BUTTON_LMASK)
+                        camera_turn(&camera, (vec2) {evt.motion.xrel, evt.motion.yrel});
+                    break;
+
+                case SDL_MOUSEBUTTONDOWN:
+                case SDL_MOUSEBUTTONUP:
+                    if (evt.button.button == SDL_BUTTON_LEFT)
+                        SDL_SetRelativeMouseMode(evt.button.state == SDL_PRESSED ? SDL_TRUE : SDL_FALSE);
 
                 case SDL_WINDOWEVENT:
                     if (evt.window.type == SDL_WINDOWEVENT_RESIZED)
-                        resize_callback(evt.window.data2, 0);
+                        resize_callback(evt.window.data1, evt.window.data2);
+                    break;
 
                 default:
                     break;
             }
         }
 
-        render(&game->renderer);
+        render(&game->renderer, &camera);
 
         SDL_GL_SwapWindow(game->window);
     }
