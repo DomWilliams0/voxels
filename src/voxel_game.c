@@ -9,8 +9,13 @@
 static int game_running = 1;
 
 static void key_callback(int is_down, int key) {
-    if (is_down && key == SDLK_ESCAPE)
-        game_running = 0;
+    switch (key) {
+        case SDLK_ESCAPE:
+            if (is_down) game_running = 0;
+
+        default:
+            break;
+    }
 }
 
 ERR game_init(struct voxel_game *game, int width, int height) {
@@ -87,6 +92,7 @@ void game_start(struct voxel_game *game) {
             }
         }
 
+        camera_tick(&camera);
         render(&game->renderer, &camera);
 
         SDL_GL_SwapWindow(game->window);
