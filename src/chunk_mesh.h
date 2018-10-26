@@ -11,6 +11,10 @@
 // 12 triangles
 #define CHUNK_MESH_VERTICES_PER_BLOCK (12 * 3)
 
-int * chunk_mesh_gen(struct chunk *chunk);
+struct chunk_mesh_meta {
+    int vertex_count;
+};
+
+int *chunk_mesh_gen(struct chunk *chunk, struct chunk_mesh_meta *meta);
 
 #endif

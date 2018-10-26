@@ -17,11 +17,11 @@ static int shared_mesh_buffer[CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH *
 
 static const float BLOCK_VERTICES[];
 
-int *chunk_mesh_gen(struct chunk *chunk) {
+int *chunk_mesh_gen(struct chunk *chunk, struct chunk_mesh_meta *meta) {
 
     struct block block = {0};
     ivec3 block_pos;
-    int out_idx = 0;
+    size_t out_idx = 0;
 
     for (uint i = 0; i < BLOCKS_PER_CHUNK; ++i) {
         chunk_get_block_idx(chunk, i, &block);
@@ -53,7 +53,6 @@ int *chunk_mesh_gen(struct chunk *chunk) {
                     shared_mesh_buffer[out_idx++] = f_or_i.i;
                 }
 
-                // TODO colour
                 int colour = block_type_colour(block.type);
                 shared_mesh_buffer[out_idx++] = colour;
 
@@ -66,6 +65,7 @@ int *chunk_mesh_gen(struct chunk *chunk) {
 
     // TODO left over junk in shared buffer? should store how much is used by this chunk
 
+    meta->vertex_count = (int) (out_idx / CHUNK_MESH_WORDS_PER_INSTANCE);
     return shared_mesh_buffer;
 }
 

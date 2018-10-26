@@ -9,6 +9,7 @@ struct chunk {
     ivec3 pos;
     int vbo;
     int flags;
+    struct chunk_mesh_meta mesh;
 
     struct block blocks[BLOCKS_PER_CHUNK];
 
@@ -37,7 +38,7 @@ static inline void glm_ivec_zero(ivec3 vec) {
 
 // TODO chunk dealloc
 static struct chunk *chunk_alloc() {
-    struct chunk *chunk = malloc(sizeof(struct chunk));
+    struct chunk *chunk = calloc(1, sizeof(struct chunk));
     if (!chunk) {
         LOG_ERROR("failed to alloc chunk");
     } else {
@@ -154,6 +155,10 @@ int chunk_has_flag(struct chunk *chunk, enum chunk_flag flag) {
 
 int *chunk_vbo(struct chunk *chunk) {
     return &chunk->vbo;
+}
+
+struct chunk_mesh_meta *chunk_mesh_meta(struct chunk *chunk) {
+    return &chunk->mesh;
 }
 
 void world_chunks_first(struct world *world, struct chunk_iterator *it) {

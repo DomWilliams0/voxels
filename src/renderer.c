@@ -81,12 +81,9 @@ void render(struct renderer *renderer, struct camera *camera) {
     struct chunk_iterator it;
     world_chunks_first(renderer->world, &it);
 
-    // TODO calculate vertex_count
-    int vertex_count = CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH *
-                       CHUNK_MESH_WORDS_PER_INSTANCE * CHUNK_MESH_VERTICES_PER_BLOCK;
-
     while (it.current) {
         int *vbo = chunk_vbo(it.current);
+        struct chunk_mesh_meta *meta = chunk_mesh_meta(it.current);
 
         if (chunk_has_flag(it.current, CHUNK_FLAG_NEW)) {
             glGenBuffers(1, vbo);
@@ -94,8 +91,8 @@ void render(struct renderer *renderer, struct camera *camera) {
 
         if (chunk_has_flag(it.current, CHUNK_FLAG_DIRTY)) {
             glBindBuffer(GL_ARRAY_BUFFER, *vbo);
-            int *mesh = chunk_mesh_gen(it.current);
-            glBufferData(GL_ARRAY_BUFFER, vertex_count * sizeof(int), mesh, GL_STATIC_DRAW);
+            int *mesh = chunk_mesh_gen(it.current, meta);
+            glBufferData(GL_ARRAY_BUFFER, meta->vertex_count * sizeof(int), mesh, GL_STATIC_DRAW);
         }
 
         if (chunk_has_flag(it.current, CHUNK_FLAG_VISIBLE)) {
@@ -128,7 +125,7 @@ void render(struct renderer *renderer, struct camera *camera) {
                 glUniformMatrix4fv(loc, 1, GL_FALSE, &view);
             }
 
-            glDrawArrays(GL_TRIANGLES, 0, vertex_count);
+            glDrawArrays(GL_TRIANGLES, 0, meta->vertex_count);
         }
 
         world_chunks_next(renderer->world, &it);

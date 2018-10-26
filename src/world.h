@@ -38,6 +38,8 @@ int chunk_has_flag(struct chunk *chunk, enum chunk_flag flag);
 
 int *chunk_vbo(struct chunk *chunk);
 
+struct chunk_mesh_meta *chunk_mesh_meta(struct chunk *chunk);
+
 void world_chunks_first(struct world *world, struct chunk_iterator *it);
 
 void world_chunks_next(struct world *world, struct chunk_iterator *it);
