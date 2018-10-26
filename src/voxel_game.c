@@ -83,7 +83,7 @@ void game_start(struct voxel_game *game) {
                         SDL_SetRelativeMouseMode(evt.button.state == SDL_PRESSED ? SDL_TRUE : SDL_FALSE);
 
                 case SDL_WINDOWEVENT:
-                    if (evt.window.type == SDL_WINDOWEVENT_RESIZED)
+                    if (evt.window.event == SDL_WINDOWEVENT_RESIZED)
                         resize_callback(evt.window.data1, evt.window.data2);
                     break;
 
