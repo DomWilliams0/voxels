@@ -87,6 +87,7 @@ void render(struct renderer *renderer, struct camera *camera) {
 
         if (chunk_has_flag(it.current, CHUNK_FLAG_NEW)) {
             glGenBuffers(1, vbo);
+            chunk_init_lighting(renderer->world, it.current);
         }
 
         if (chunk_has_flag(it.current, CHUNK_FLAG_DIRTY)) {

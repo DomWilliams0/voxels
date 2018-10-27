@@ -2,18 +2,7 @@
 #include "chunk_mesh.h"
 #include "face.h"
 
-static inline void expand_flat_index(uint idx, ivec3 out) {
-    int a_shift = CHUNK_WIDTH_SHIFT + CHUNK_HEIGHT_SHIFT;
-    int a = 1 << a_shift;
-    out[2] = idx >> a_shift;
-    uint b = idx - a * out[2];
-    out[1] = b >> CHUNK_WIDTH_SHIFT;
-    out[0] = b & (CHUNK_WIDTH - 1);
-}
-
-
-static int shared_mesh_buffer[CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH *
-                              CHUNK_MESH_WORDS_PER_INSTANCE * CHUNK_MESH_VERTICES_PER_BLOCK];
+static int shared_mesh_buffer[BLOCKS_PER_CHUNK * CHUNK_MESH_WORDS_PER_INSTANCE * CHUNK_MESH_VERTICES_PER_BLOCK];
 
 static const float BLOCK_VERTICES[];
 
@@ -25,7 +14,9 @@ int *chunk_mesh_gen(struct chunk *chunk, struct chunk_mesh_meta *meta) {
 
     for (uint i = 0; i < BLOCKS_PER_CHUNK; ++i) {
         chunk_get_block_idx(chunk, i, &block);
-        // TODO cull if totally occluded
+        // cull if totally occluded
+        if (block.face_visibility == FACE_VISIBILITY_NONE)
+            continue;
 
         // cull air blocks
         if (block.type == BLOCK_AIR)
@@ -36,7 +27,9 @@ int *chunk_mesh_gen(struct chunk *chunk, struct chunk_mesh_meta *meta) {
         for (int face_idx = 0; face_idx < FACE_COUNT; ++face_idx) {
             enum face face = FACES[face_idx];
 
-            // TODO check face is visible
+            if (!FACE_IS_VISIBLE(block.face_visibility, face))
+                continue;
+
             int stride = 6 * 6; // 6 vertices * 6 floats per face
             const float *verts = BLOCK_VERTICES + (stride * (int) face);
 
@@ -62,8 +55,6 @@ int *chunk_mesh_gen(struct chunk *chunk, struct chunk_mesh_meta *meta) {
             }
         }
     }
-
-    // TODO left over junk in shared buffer? should store how much is used by this chunk
 
     meta->vertex_count = (int) (out_idx / CHUNK_MESH_WORDS_PER_INSTANCE);
     return shared_mesh_buffer;

@@ -55,9 +55,11 @@ enum block_type {
 // rgba reversed so abgr
 int block_type_colour(enum block_type type);
 
+int block_type_opaque(enum block_type type);
+
 struct block {
     enum block_type type;
-    // TODO face visibility
+    int face_visibility;
     // TODO ambient occlusion
 };
 
@@ -65,5 +67,10 @@ struct block {
 void chunk_get_block_idx(struct chunk *chunk, int idx, struct block *out);
 
 void chunk_get_pos(struct chunk *chunk, ivec3 out);
+
+// helper
+void expand_flat_index(uint idx, ivec3 out);
+
+void chunk_init_lighting(struct world *world, struct chunk *chunk);
 
 #endif
