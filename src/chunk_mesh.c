@@ -56,7 +56,7 @@ int *chunk_mesh_gen(struct chunk *chunk, struct chunk_mesh_meta *meta) {
         }
     }
 
-    meta->vertex_count = (int) (out_idx / CHUNK_MESH_WORDS_PER_INSTANCE);
+    meta->vertex_count = (int) out_idx;
     return shared_mesh_buffer;
 }
 
