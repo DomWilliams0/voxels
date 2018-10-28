@@ -196,7 +196,29 @@ ERR world_load_demo(struct world **world, const char *name) {
     } else if (!strcmp(name, "yuge")) {
         demo_fill_range(w, (ivec3) {0, 0, 0}, (ivec3) {60, 60, 60}, BLOCK_OBJECT);
     } else if (!strcmp(name, "building")) {
-        demo_fill_range(w, (ivec3) {0, 0, 0}, (ivec3) {5, 5, 5}, BLOCK_GROUND);
+        int ground = 2;
+        demo_fill_range(w, (ivec3) {0, 0, 0}, (ivec3) {100, ground, 100}, BLOCK_GROUND);
+
+        int size = 40;
+        int height = 60;
+        int thickness = 4;
+        int pad = 5;
+
+        // 4 walls
+        demo_fill_range(w, (ivec3) {pad, ground, pad}, (ivec3) {size + thickness, height, thickness}, BLOCK_OBJECT);
+        demo_fill_range(w, (ivec3) {pad + size, ground, pad}, (ivec3) {thickness, height, size + thickness},
+                        BLOCK_OBJECT);
+        demo_fill_range(w, (ivec3) {pad, ground, pad + size}, (ivec3) {size, height, thickness}, BLOCK_OBJECT);
+        demo_fill_range(w, (ivec3) {pad, ground, pad}, (ivec3) {thickness, height, size}, BLOCK_OBJECT);
+
+        // ceiling
+        demo_fill_range(w, (ivec3) {pad, height + 1, pad}, (ivec3) {size, 1, size}, BLOCK_OBJECT);
+
+        // door
+        int doorWidth = 9;
+        int doorHeight = 20;
+        demo_fill_range(w, (ivec3) {pad + size / 2, ground, pad + size}, (ivec3) {doorWidth, doorHeight, thickness},
+                        BLOCK_AIR);
     } else {
         result = ERR_FAIL;
     }
