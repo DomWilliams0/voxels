@@ -12,7 +12,7 @@ struct voxel_game {
 
 ERR game_init(struct voxel_game *game, int width, int height);
 
-void game_start(struct voxel_game *game);
+void game_start(struct voxel_game *game, int argc, char **argv);
 
 void game_destroy(struct voxel_game *game);
 

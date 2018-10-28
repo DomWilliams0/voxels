@@ -183,16 +183,27 @@ ERR world_load_demo(struct world **world, const char *name) {
         return ERR_FAIL;
     }
 
+    int result = ERR_SUCC;
+
     world_init(w);
 
-    // TODO actually use name
-    if (strcmp(name, "empty") != 0) {
-        demo_fill_range(w, (ivec3) {0, 0, 0}, (ivec3) {60, 60, 10}, BLOCK_OBJECT);
+    if (!strcmp(name, "demo")) {
+        demo_set_block_safely(w, (ivec3) {0, 0, 0}, BLOCK_GROUND);
+        demo_set_block_safely(w, (ivec3) {1, 0, 0}, BLOCK_GROUND);
+        demo_set_block_safely(w, (ivec3) {0, 1, 1}, BLOCK_OBJECT);
+        demo_fill_range(w, (ivec3) {50, 0, 0}, (ivec3) {1, 20, 20}, BLOCK_OBJECT);
+        demo_fill_range(w, (ivec3) {0, 0, 40}, (ivec3) {30, 10, 1}, BLOCK_GROUND);
+    } else if (!strcmp(name, "yuge")) {
+        demo_fill_range(w, (ivec3) {0, 0, 0}, (ivec3) {60, 60, 60}, BLOCK_OBJECT);
+    } else if (!strcmp(name, "building")) {
+        demo_fill_range(w, (ivec3) {0, 0, 0}, (ivec3) {5, 5, 5}, BLOCK_GROUND);
+    } else {
+        result = ERR_FAIL;
     }
 
 
     *world = w;
-    return ERR_SUCC;
+    return result;
 }
 
 void world_destroy(struct world *world) {

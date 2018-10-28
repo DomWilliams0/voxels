@@ -49,10 +49,11 @@ ERR game_init(struct voxel_game *game, int width, int height) {
     return ERR_SUCC;
 }
 
-void game_start(struct voxel_game *game) {
+void game_start(struct voxel_game *game, int argc, char **argv) {
     struct world *world;
-    if (!world_load_demo(&world, "demo")) {
-        LOG_ERROR("failed to load world");
+    char *demo_name = argc > 1 ? argv[1] : "demo";
+    if (!world_load_demo(&world, demo_name)) {
+        LOG_ERROR("failed to load world '%s'", demo_name);
         return;
     }
     game->renderer.world = world;
