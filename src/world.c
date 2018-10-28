@@ -147,12 +147,32 @@ static struct block *world_get_block_with_chunk_hint(struct world *world, struct
     return world_get_block(world, pos);
 }
 
-// helper
 static void world_set_block(struct world *world, ivec3 pos, enum block_type type) {
     struct block *b = world_get_block(world, pos);
     if (b) {
         b->type = type;
         // TODO mark as dirty
+    }
+}
+
+static void demo_set_block_safely(struct world *world, ivec3 pos, enum block_type type) {
+    if (!world_find_chunk(world, pos)) {
+        ivec3 chunk_coord = IVEC3_COPY(pos);
+        resolve_chunk_coords(chunk_coord);
+        world_add_chunk(world, chunk_coord);
+    }
+
+    world_set_block(world, pos, type);
+}
+
+static void demo_fill_range(struct world *world, const ivec3 start_pos, const ivec3 len, enum block_type type) {
+    for (int z = 0; z < len[2]; ++z) {
+        for (int y = 0; y < len[1]; ++y) {
+            for (int x = 0; x < len[0]; ++x) {
+                // TODO use chunk hints?
+                demo_set_block_safely(world, (ivec3) {start_pos[0] + x, start_pos[1] + y, start_pos[2] + z}, type);
+            }
+        }
     }
 }
 
@@ -167,10 +187,7 @@ ERR world_load_demo(struct world **world, const char *name) {
 
     // TODO actually use name
     if (strcmp(name, "empty") != 0) {
-        world_add_chunk(w, (ivec3) {0, 0, 0});
-        world_set_block(w, (ivec3) {0, 0, 0}, BLOCK_GROUND);
-        world_set_block(w, (ivec3) {0, 1, 0}, BLOCK_OBJECT);
-        world_set_block(w, (ivec3) {1, 0, 1}, BLOCK_OBJECT);
+        demo_fill_range(w, (ivec3) {0, 0, 0}, (ivec3) {60, 60, 10}, BLOCK_OBJECT);
     }
 
 
