@@ -321,13 +321,15 @@ static void update_face_visibility(struct world *world, ivec3 pos) {
 }
 
 void chunk_init_lighting(struct world *world, struct chunk *chunk) {
-    ivec3 block_pos;
+    ivec3 chunk_pos, world_pos;
     struct block *block;
     for (uint i = 0; i < BLOCKS_PER_CHUNK; ++i) {
-        expand_flat_index(i, block_pos);
-        chunk_to_world_coords(chunk, block_pos);
+        expand_flat_index(i, chunk_pos);
 
-        block = chunk_get_block(chunk, block_pos);
-        update_face_visibility_with_block(world, block_pos, block, chunk);
+        glm_ivec_copy(chunk_pos, world_pos);
+        chunk_to_world_coords(chunk, world_pos);
+
+        block = chunk_get_block(chunk, chunk_pos);
+        update_face_visibility_with_block(world, world_pos, block, chunk);
     }
 }
