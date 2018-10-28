@@ -202,6 +202,12 @@ struct chunk_mesh_meta *chunk_mesh_meta(struct chunk *chunk) {
     return &chunk->mesh;
 }
 
+void chunk_world_space_pos(struct chunk *chunk, vec3 out) {
+    out[0] = chunk->pos[0] * CHUNK_WIDTH * BLOCK_SIZE * 2;
+    out[1] = chunk->pos[1] * CHUNK_HEIGHT * BLOCK_SIZE * 2;
+    out[2] = chunk->pos[2] * CHUNK_DEPTH * BLOCK_SIZE * 2;
+}
+
 void world_chunks_first(struct world *world, struct chunk_iterator *it) {
     if (world->chunks.length > 0) {
         it->_progress = 1;

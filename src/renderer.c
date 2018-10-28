@@ -118,9 +118,13 @@ void render(struct renderer *renderer, struct camera *camera) {
 
 
             {
+                // offset view by chunk coords
                 mat4 view;
                 glm_mat4_copy(camera->transform, view);
-                // TODO offset view by chunk coords
+                vec3 translation;
+                chunk_world_space_pos(it.current, translation);
+
+                glm_translate(view, translation);
 
                 int loc = glGetUniformLocation(renderer->world_program, "view");
                 glUniformMatrix4fv(loc, 1, GL_FALSE, &view);

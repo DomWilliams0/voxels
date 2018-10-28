@@ -40,6 +40,8 @@ int *chunk_vbo(struct chunk *chunk);
 
 struct chunk_mesh_meta *chunk_mesh_meta(struct chunk *chunk);
 
+void chunk_world_space_pos(struct chunk *chunk, vec3 out);
+
 void world_chunks_first(struct world *world, struct chunk_iterator *it);
 
 void world_chunks_next(struct world *world, struct chunk_iterator *it);
