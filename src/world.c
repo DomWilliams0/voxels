@@ -402,7 +402,7 @@ char ao_get_vertex(long ao, enum face face, int vertex_idx) {
             return 0; // terrible default value
     }
 
-    int byte_mask_shift = (int) face * 8;
+    int byte_mask_shift = real_idx * 8;
     int byte_mask = (1 << 8) - 1;
     int shifted_mask = byte_mask << byte_mask_shift;
     long byte = (ao & shifted_mask) >> byte_mask_shift;
