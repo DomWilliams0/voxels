@@ -17,6 +17,7 @@ ERR renderer_init(struct renderer *renderer, int width, int height) {
     window_width = width;
     window_height = height;
     renderer->world = NULL;
+    renderer->is_wireframe = 0;
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
@@ -214,4 +215,8 @@ static int load_shader(const char *filename, int type) {
     }
 
     return shader;
+}
+
+void renderer_toggle_wireframe(struct renderer *renderer) {
+    glPolygonMode(GL_FRONT_AND_BACK, (renderer->is_wireframe = !renderer->is_wireframe) ? GL_LINE : GL_FILL);
 }

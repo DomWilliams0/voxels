@@ -8,16 +8,6 @@
 
 static int game_running = 1;
 
-static void key_callback(int is_down, int key) {
-    switch (key) {
-        case SDLK_ESCAPE:
-            if (is_down) game_running = 0;
-
-        default:
-            break;
-    }
-}
-
 ERR game_init(struct voxel_game *game, int width, int height) {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         LOG_ERROR("failed to init sdl: %s", SDL_GetError());
@@ -69,8 +59,20 @@ void game_start(struct voxel_game *game, int argc, char **argv) {
                     break;
 
                 case SDL_KEYDOWN:
-                case SDL_KEYUP:
-                    key_callback(evt.key.type == SDL_KEYDOWN, evt.key.keysym.sym);
+                case SDL_KEYUP: {
+                    switch (evt.key.keysym.sym) {
+                        case SDLK_ESCAPE:
+                            if (evt.key.type == SDL_KEYDOWN) game_running = 0;
+                            break;
+
+                        case SDLK_y:
+                            if (evt.key.type == SDL_KEYDOWN) renderer_toggle_wireframe(&game->renderer);
+                            break;
+
+                        default:
+                            break;
+                    }
+                }
                     break;
 
                 case SDL_MOUSEMOTION:
