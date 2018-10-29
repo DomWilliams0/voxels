@@ -38,3 +38,20 @@ void face_offset(enum face face, const ivec3 in, ivec3 out) {
             break;
     }
 }
+
+enum face face_opposite(enum face face) {
+    switch (face) {
+        case FACE_FRONT:
+            return FACE_BACK;
+        case FACE_LEFT:
+            return FACE_RIGHT;
+        case FACE_RIGHT:
+            return FACE_LEFT;
+        case FACE_TOP:
+            return FACE_BOTTOM;
+        case FACE_BOTTOM:
+            return FACE_TOP;
+        case FACE_BACK:
+            return FACE_FRONT;
+    }
+}

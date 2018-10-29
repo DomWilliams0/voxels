@@ -97,7 +97,7 @@ static void resolve_chunk_coords(ivec3 pos) {
     pos[2] >>= CHUNK_WIDTH_SHIFT;
 }
 
-static struct chunk *world_find_chunk(struct world *world, ivec3 block_pos) {
+static struct chunk *world_find_chunk(struct world *world, const ivec3 block_pos) {
     ivec3 chunk_pos = IVEC3_COPY(block_pos);
     resolve_chunk_coords(chunk_pos);
 
@@ -121,7 +121,7 @@ static struct block *chunk_get_block(struct chunk *chunk, const ivec3 pos) {
     return &chunk->blocks[idx];
 }
 
-static struct block *world_get_block(struct world *world, ivec3 pos) {
+static struct block *world_get_block(struct world *world, const ivec3 pos) {
     struct chunk *chunk = world_find_chunk(world, pos);
     if (!chunk) return NULL;
 
@@ -132,7 +132,7 @@ static struct block *world_get_block(struct world *world, ivec3 pos) {
 }
 
 // hint can be NULL
-static struct block *world_get_block_with_chunk_hint(struct world *world, struct chunk *hint, ivec3 pos) {
+static struct block *world_get_block_with_chunk_hint(struct world *world, struct chunk *hint, const ivec3 pos) {
     if (hint) {
         ivec3 chunk_pos = IVEC3_COPY(pos);
         resolve_chunk_coords(chunk_pos);
@@ -189,11 +189,20 @@ ERR world_load_demo(struct world **world, const char *name) {
     world_init(w);
 
     if (!strcmp(name, "demo")) {
-        demo_set_block_safely(w, (ivec3) {0, 0, 0}, BLOCK_GROUND);
-        demo_set_block_safely(w, (ivec3) {1, 0, 0}, BLOCK_GROUND);
-        demo_set_block_safely(w, (ivec3) {0, 1, 1}, BLOCK_OBJECT);
-        demo_fill_range(w, (ivec3) {50, 0, 0}, (ivec3) {1, 20, 20}, BLOCK_OBJECT);
-        demo_fill_range(w, (ivec3) {0, 0, 40}, (ivec3) {30, 10, 1}, BLOCK_GROUND);
+        demo_fill_range(w, (ivec3) {0, 0, 0}, (ivec3) {10, 1, 10}, BLOCK_GROUND);
+
+        // pillar
+        demo_fill_range(w, (ivec3) {3, 0, 3}, (ivec3) {1, 5, 1}, BLOCK_OBJECT);
+
+        demo_set_block_safely(w, (ivec3) {4, 1, 3}, BLOCK_OBJECT);
+        demo_set_block_safely(w, (ivec3) {3, 1, 4}, BLOCK_OBJECT);
+        demo_set_block_safely(w, (ivec3) {2, 1, 3}, BLOCK_OBJECT);
+        demo_set_block_safely(w, (ivec3) {3, 1, 2}, BLOCK_OBJECT);
+
+        demo_set_block_safely(w, (ivec3) {4, 4, 3}, BLOCK_OBJECT);
+        demo_set_block_safely(w, (ivec3) {3, 4, 4}, BLOCK_OBJECT);
+        demo_set_block_safely(w, (ivec3) {2, 4, 3}, BLOCK_OBJECT);
+        demo_set_block_safely(w, (ivec3) {3, 4, 2}, BLOCK_OBJECT);
     } else if (!strcmp(name, "yuge")) {
         demo_fill_range(w, (ivec3) {0, 0, 0}, (ivec3) {60, 60, 60}, BLOCK_OBJECT);
     } else if (!strcmp(name, "building")) {
@@ -319,39 +328,127 @@ inline void expand_flat_index(uint idx, ivec3 out) {
     out[0] = b & (CHUNK_WIDTH - 1);
 }
 
+static const enum face face_ao_definitions[FACE_COUNT][1 + 8] = {
+        {FACE_TOP,
+                FACE_FRONT,  FACE_LEFT,
+                FACE_FRONT,  FACE_RIGHT,
+                FACE_BACK,   FACE_RIGHT,
+                FACE_BACK,   FACE_LEFT
+        },
+        {FACE_BOTTOM,
+                FACE_BACK,   FACE_LEFT,
+                FACE_BACK,   FACE_RIGHT,
+                FACE_FRONT,  FACE_RIGHT,
+                FACE_FRONT,  FACE_LEFT
+        },
+
+        {FACE_FRONT,
+                FACE_BOTTOM, FACE_LEFT,
+                FACE_BOTTOM, FACE_RIGHT,
+                FACE_TOP,    FACE_RIGHT,
+                FACE_TOP,    FACE_LEFT
+        },
+        {FACE_BACK,
+                FACE_TOP,    FACE_LEFT,
+                FACE_TOP,    FACE_RIGHT,
+                FACE_BOTTOM, FACE_RIGHT,
+                FACE_BOTTOM, FACE_LEFT
+        },
+
+        {FACE_LEFT,
+                FACE_BOTTOM, FACE_BACK,
+                FACE_BOTTOM, FACE_FRONT,
+                FACE_TOP,    FACE_FRONT,
+                FACE_TOP,    FACE_BACK
+        },
+
+        {FACE_RIGHT,
+                FACE_BOTTOM, FACE_FRONT,
+                FACE_BOTTOM, FACE_BACK,
+                FACE_TOP,    FACE_BACK,
+                FACE_TOP,    FACE_FRONT
+        }
+};
+
+inline static int is_opaque_with_default_nope(struct world *world, struct chunk *chunk, const ivec3 block_pos) {
+    struct block *b = world_get_block_with_chunk_hint(world, chunk, block_pos);
+    return b ? block_type_opaque(b->type) : 0;
+}
+
+inline static char calculate_vertex_ao(struct world *world, struct chunk *chunk, const ivec3 block_pos,
+                                       enum face face, enum face a, enum face b) {
+    ivec3 acc;
+    face_offset(face, block_pos, acc);
+
+    ivec3 v0, v1, v2;
+    face_offset(a, acc, acc);
+    glm_ivec_copy(acc, v0);
+
+    face_offset(b, acc, acc);
+    glm_ivec_copy(acc, v1);
+
+    face_offset(face_opposite(a), acc, acc);
+    glm_ivec_copy(acc, v2);
+
+    int s1 = is_opaque_with_default_nope(world, chunk, v0);
+    int s2 = is_opaque_with_default_nope(world, chunk, v2);
+    int corner = is_opaque_with_default_nope(world, chunk, v1);
+
+    return (char) (s1 && s2 ? AO_VERTEX_FULL : (AO_VERTEX_NONE - (s1 + s2 + corner)));
+}
+
 // chunk is optional for hinted lookups
-static void update_face_visibility_with_block(struct world *world, ivec3 pos,
-                                              struct block *block, struct chunk *chunk) {
+static void update_lighting_with_block(struct world *world, const ivec3 pos,
+                                       struct block *block, struct chunk *chunk) {
     int visibility = block->face_visibility;
+    long ao = 0;
 
     if (!block_type_opaque(block->type)) {
-        // fully visibly
+        // fully visibly and not occluded
         visibility = FACE_VISIBILITY_ALL;
+        ao = AO_BLOCK_NONE;
     } else {
-        // check each face individually
-        ivec3 offset;
-        struct block *offset_block;
-        for (int i = 0; i < FACE_COUNT; ++i) {
-            face_offset(FACES[i], pos, offset);
+        // check each face individually for visibility
+        {
+            ivec3 offset;
+            struct block *offset_block;
+            for (int i = 0; i < FACE_COUNT; ++i) {
+                face_offset(FACES[i], pos, offset);
 
-            if ((offset_block = world_get_block_with_chunk_hint(world, chunk, offset))) {
-                visibility = block_type_opaque(offset_block->type)
-                             ? (visibility & ~(1 << i))
-                             : (visibility | (1 << i));
+                if ((offset_block = world_get_block_with_chunk_hint(world, chunk, offset))) {
+                    visibility = block_type_opaque(offset_block->type)
+                                 ? (visibility & ~(1 << i))
+                                 : (visibility | (1 << i));
+                }
+            }
+        }
+
+        // ao
+        {
+            for (int i = 0; i < FACE_COUNT; ++i) {
+                const enum face *definition = face_ao_definitions[i];
+                enum face face = definition[0];
+
+                char v05 = calculate_vertex_ao(world, chunk, pos, face, definition[1], definition[2]);
+                char v1 = calculate_vertex_ao(world, chunk, pos, face, definition[3], definition[4]);
+                char v23 = calculate_vertex_ao(world, chunk, pos, face, definition[5], definition[6]);
+                char v4 = calculate_vertex_ao(world, chunk, pos, face, definition[7], definition[8]);
+                ao |= ao_set_face(face, v05, v1, v23, v4);
             }
         }
 
     }
 
     block->face_visibility = visibility;
+    block->ao = ao;
 }
 
 // lookups block and owning chunk from pos
-static void update_face_visibility(struct world *world, ivec3 pos) {
+static void update_lighting(struct world *world, const ivec3 pos) {
     struct block *block = world_get_block(world, pos);
     if (!block)
         return;
-    update_face_visibility_with_block(world, pos, block, NULL);
+    update_lighting_with_block(world, pos, block, NULL);
 }
 
 void chunk_init_lighting(struct world *world, struct chunk *chunk) {
@@ -364,13 +461,12 @@ void chunk_init_lighting(struct world *world, struct chunk *chunk) {
         chunk_to_world_coords(chunk, world_pos);
 
         block = chunk_get_block(chunk, chunk_pos);
-        update_face_visibility_with_block(world, world_pos, block, chunk);
+        update_lighting_with_block(world, world_pos, block, chunk);
     }
 }
 
-// 1 byte = 4 vertices * 2 bits each
 long ao_set_face(enum face face, char v05, char v1, char v23, char v4) {
-    int byte =
+    long byte =
             v05 |
             v1 << 2 |
             v23 << 4 |
@@ -402,14 +498,15 @@ char ao_get_vertex(long ao, enum face face, int vertex_idx) {
             return 0; // terrible default value
     }
 
-    int byte_mask_shift = real_idx * 8;
-    int byte_mask = (1 << 8) - 1;
-    int shifted_mask = byte_mask << byte_mask_shift;
+    int byte_mask_shift = face * 8;
+    long byte_mask = (1 << 8) - 1;
+    long shifted_mask = byte_mask << byte_mask_shift;
     long byte = (ao & shifted_mask) >> byte_mask_shift;
 
     int vertex_shift = real_idx * 2;
     int vertex_mask = 3 << vertex_shift;
 
-    return (char) ((byte & vertex_mask) >> vertex_shift);
+    long result = (byte & vertex_mask) >> vertex_shift;
+    return (char) result;
 }
 

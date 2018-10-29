@@ -14,7 +14,7 @@ void main()
     const float ambient = 1;
     const vec4 ambient_colour = vec4(ambient, ambient, ambient, 1.0);
 
-    const float ao_scale = 0.45;
+    const float ao_scale = 0.65;
     float scaled_ao = ((vertex_ao * ao_scale) + (1-ao_scale));
 
     rgba = (vertex_colour * ambient_colour * scaled_ao);

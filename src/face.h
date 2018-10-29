@@ -20,6 +20,8 @@ extern const enum face FACES[];
 
 void face_offset(enum face face, const ivec3 in, ivec3 out);
 
+enum face face_opposite(enum face face);
+
 #define FACE_VISIBILITY_ALL ((1 << FACE_COUNT)-1)
 #define FACE_VISIBILITY_NONE (0)
 #define FACE_IS_VISIBLE(vis, face) (((vis) & (1<<(face))) != 0)

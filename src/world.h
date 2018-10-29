@@ -82,6 +82,8 @@ void chunk_init_lighting(struct world *world, struct chunk *chunk);
 
 // all bits set = AO_VERTEX_NONE for each
 #define AO_BLOCK_NONE ((1L << AO_BIT_COUNT)-1)
+#define AO_VERTEX_NONE (3)
+#define AO_VERTEX_FULL (0)
 
 // 1 byte = 4 vertices * 2 bits each
 // or with accumulator
