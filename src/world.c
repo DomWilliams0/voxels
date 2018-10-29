@@ -288,8 +288,8 @@ void world_chunks_clear_dirty(struct world *world) {
 int block_type_colour(enum block_type type) {
     switch (type) {
         case BLOCK_AIR: return 0xffffffff;
-        case BLOCK_GROUND: return 0xffff0000;
-        case BLOCK_OBJECT: return 0xff0000ff;
+        case BLOCK_GROUND: return 0xffe08d3b;
+        case BLOCK_OBJECT: return 0xff577fda;
     }
 }
 
