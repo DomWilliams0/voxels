@@ -34,7 +34,7 @@ void face_offset(enum face face, const ivec3 in, ivec3 out) {
             vec_add(in, out, 0, -1, 0);
             break;
         case FACE_BACK:
-            vec_add(in, out, -1, 0, 0);
+            vec_add(in, out, 1, 0, 0);
             break;
     }
 }
