@@ -57,7 +57,8 @@ static struct chunk *chunk_alloc() {
 
         struct block default_block = {
                 .type = BLOCK_AIR,
-                .face_visibility = FACE_VISIBILITY_ALL
+                .face_visibility = FACE_VISIBILITY_ALL,
+                .ao = AO_BLOCK_NONE,
         };
         for (int i = 0; i < BLOCKS_PER_CHUNK; ++i) {
             chunk->blocks[i] = default_block;
@@ -366,3 +367,49 @@ void chunk_init_lighting(struct world *world, struct chunk *chunk) {
         update_face_visibility_with_block(world, world_pos, block, chunk);
     }
 }
+
+// 1 byte = 4 vertices * 2 bits each
+long ao_set_face(enum face face, char v05, char v1, char v23, char v4) {
+    int byte =
+            v05 |
+            v1 << 2 |
+            v23 << 4 |
+            v4 << 6;
+
+    int shift = (int) face * 8;
+    return byte << shift;
+}
+
+char ao_get_vertex(long ao, enum face face, int vertex_idx) {
+    int real_idx;
+    switch (vertex_idx) {
+        case 0:
+        case 5:
+            real_idx = 0;
+            break;
+        case 1:
+            real_idx = 1;
+            break;
+        case 2:
+        case 3:
+            real_idx = 2;
+            break;
+        case 4:
+            real_idx = 3;
+            break;
+        default:
+            LOG_ERROR("bad ao vertex index %d, should be < 6", vertex_idx);
+            return 0; // terrible default value
+    }
+
+    int byte_mask_shift = (int) face * 8;
+    int byte_mask = (1 << 8) - 1;
+    int shifted_mask = byte_mask << byte_mask_shift;
+    long byte = (ao & shifted_mask) >> byte_mask_shift;
+
+    int vertex_shift = real_idx * 2;
+    int vertex_mask = 3 << vertex_shift;
+
+    return (char) ((byte & vertex_mask) >> vertex_shift);
+}
+

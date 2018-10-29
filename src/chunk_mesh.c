@@ -5,6 +5,7 @@
 static int shared_mesh_buffer[BLOCKS_PER_CHUNK * CHUNK_MESH_WORDS_PER_INSTANCE * CHUNK_MESH_VERTICES_PER_BLOCK];
 
 static const float BLOCK_VERTICES[];
+static const float AO_CURVE[] = {0, 0.6f, 0.8f, 1};
 
 int *chunk_mesh_gen(struct chunk *chunk, struct chunk_mesh_meta *meta) {
 
@@ -33,25 +34,28 @@ int *chunk_mesh_gen(struct chunk *chunk, struct chunk_mesh_meta *meta) {
             int stride = 6 * 6; // 6 vertices * 6 floats per face
             const float *verts = BLOCK_VERTICES + (stride * (int) face);
 
+            union {
+                float f;
+                int i;
+            } f_or_i;
+
             for (int v = 0; v < 6; ++v) {
                 // vertex pos in chunk space
                 int v_idx = v * 6;
                 for (int j = 0; j < 3; ++j) {
-                    union {
-                        float f;
-                        int i;
-                    } f_or_i;
-
                     f_or_i.f = verts[v_idx + j] + block_pos[j] * 2 * BLOCK_SIZE;
                     shared_mesh_buffer[out_idx++] = f_or_i.i;
                 }
 
+                // colour
                 int colour = block_type_colour(block.type);
                 shared_mesh_buffer[out_idx++] = colour;
 
-                // TODO ao
-                int ao = 1;
-                shared_mesh_buffer[out_idx++] = ao;
+                // ao
+                char ao_idx = ao_get_vertex(block.ao, face, v);
+                float ao = AO_CURVE[ao_idx];
+                f_or_i.f = ao;
+                shared_mesh_buffer[out_idx++] = f_or_i.i;
             }
         }
     }

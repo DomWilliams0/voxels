@@ -1,8 +1,9 @@
 #ifndef VOXEL_GAME_WORLD_H
 #define VOXEL_GAME_WORLD_H
 
-#include "error.h"
 #include <cglm/cglm.h>
+#include "error.h"
+#include "face.h"
 
 #define CHUNK_WIDTH_SHIFT 5
 #define CHUNK_HEIGHT_SHIFT 5
@@ -59,10 +60,14 @@ int block_type_colour(enum block_type type);
 
 int block_type_opaque(enum block_type type);
 
+// 2 bits per 4 unique vertices per 6 faces
+#define AO_BIT_COUNT (2*4*6)
+
 struct block {
     enum block_type type;
-    int face_visibility;
-    // TODO ambient occlusion
+
+    int face_visibility : 6;
+    long ao: AO_BIT_COUNT;
 };
 
 
@@ -74,5 +79,14 @@ void chunk_get_pos(struct chunk *chunk, ivec3 out);
 void expand_flat_index(uint idx, ivec3 out);
 
 void chunk_init_lighting(struct world *world, struct chunk *chunk);
+
+// all bits set = AO_VERTEX_NONE for each
+#define AO_BLOCK_NONE ((1L << AO_BIT_COUNT)-1)
+
+// 1 byte = 4 vertices * 2 bits each
+// or with accumulator
+long ao_set_face(enum face face, char v05, char v1, char v23, char v4);
+
+char ao_get_vertex(long ao, enum face face, int vertex_idx);
 
 #endif
