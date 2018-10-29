@@ -4,7 +4,7 @@
 #include "cglm/cglm.h"
 
 #define CAMERA_TURN_SPEED (0.001f)
-#define CAMERA_MOVE_SPEED (0.03f)
+#define CAMERA_MOVE_SPEED (0.15f)
 
 struct camera {
     vec3 pos;
