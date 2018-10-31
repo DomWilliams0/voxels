@@ -39,6 +39,8 @@ ERR game_init(struct voxel_game *game, int width, int height) {
     return ERR_SUCC;
 }
 
+static void game_tick(struct voxel_game *game, struct camera *camera);
+
 void game_start(struct voxel_game *game, int argc, char **argv) {
     struct world *world;
     char *demo_name = argc > 1 ? argv[1] : "demo";
@@ -50,6 +52,10 @@ void game_start(struct voxel_game *game, int argc, char **argv) {
 
     struct camera camera;
     camera_init(&camera, (vec3) {-2, 0, 0}, (vec3) {-0.3f, 0, 1});
+
+    int next_tick = SDL_GetTicks();
+    int loops;
+    float interpolation;
 
     SDL_Event evt;
     while (game_running) {
@@ -95,14 +101,31 @@ void game_start(struct voxel_game *game, int argc, char **argv) {
             }
         }
 
-        camera_tick(&camera);
-        render(&game->renderer, &camera);
+        // merci http://www.koonsolo.com/news/dewitters-gameloop/
+        const int TICKS_PER_SECOND = 20;
+        const int SKIP_TICKS = 1000 / TICKS_PER_SECOND;
+        const int MAX_FRAMESKIP = 5;
 
+        loops = 0;
+        while (SDL_GetTicks() > next_tick && loops < MAX_FRAMESKIP) {
+            game_tick(game, &camera);
+
+            next_tick += SKIP_TICKS;
+            loops += 1;
+        }
+
+        interpolation = ((float) (SDL_GetTicks() + SKIP_TICKS - next_tick)) / SKIP_TICKS;
+
+        render(&game->renderer, &camera, interpolation);
         SDL_GL_SwapWindow(game->window);
     }
 
     world_destroy(world);
     game->renderer.world = NULL; // TODO destroy renderer?
+}
+
+static void game_tick(struct voxel_game *game, struct camera *camera) {
+    camera_tick(camera);
 }
 
 void game_destroy(struct voxel_game *game) {

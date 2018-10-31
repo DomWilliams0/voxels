@@ -59,8 +59,7 @@ ERR renderer_init(struct renderer *renderer, int width, int height) {
     return ERR_SUCC;
 }
 
-void render(struct renderer *renderer, struct camera *camera) {
-
+void render(struct renderer *renderer, struct camera *camera, float interpolation) {
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     glViewport(0, 0, window_width, window_height);
     glUseProgram(renderer->world_program);
