@@ -13,6 +13,8 @@ static int window_width, window_height;
 /** returns 0 if invalid **/
 static int load_shader(const char *filename, int type);
 
+static ERR load_world_program(int *prog_out, const char *vertex_path, const char *fragment_path);
+
 ERR renderer_init(struct renderer *renderer, int width, int height) {
     window_width = width;
     window_height = height;
@@ -24,42 +26,14 @@ ERR renderer_init(struct renderer *renderer, int width, int height) {
     glCullFace(GL_BACK);
 
     glClearColor(0.05, 0.05, 0.08, 1.0);
+
     glGenVertexArrays(1, &renderer->world_vao);
+    ERR result = load_world_program(&renderer->world_program, "res/shaders/world.glslv", "res/shaders/world.glslf");
 
-    // load shaders
-    int vert = load_shader("res/shaders/world.glslv", GL_VERTEX_SHADER);
-    int frag = load_shader("res/shaders/world.glslf", GL_FRAGMENT_SHADER);
-
-    if (vert == 0 || frag == 0) {
-        LOG_ERROR("failed to load shaders");
-        return ERR_FAIL;
-    }
-
-    int prog = glCreateProgram();
-    renderer->world_program = prog;
-
-    glAttachShader(prog, vert);
-    glAttachShader(prog, frag);
-    glLinkProgram(prog);
-
-    int link_status;
-    glGetProgramiv(prog, GL_LINK_STATUS, &link_status);
-    if (link_status == GL_FALSE) {
-        LOG_ERROR("failed to link program");
-        return ERR_FAIL;
-    }
-
-    glProgramParameteri(prog, GL_PROGRAM_SEPARABLE, GL_TRUE);
-
-    glDetachShader(prog, vert);
-    glDetachShader(prog, frag);
-    glDeleteShader(vert);
-    glDeleteShader(frag);
-
-    return ERR_SUCC;
+    return result;
 }
 
-void render(struct renderer *renderer, struct camera_state *camera_state, double interpolation) {
+void renderer_render(struct renderer *renderer, struct camera_state *camera_state, float interpolation) {
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     glViewport(0, 0, window_width, window_height);
     glUseProgram(renderer->world_program);
@@ -214,6 +188,39 @@ static int load_shader(const char *filename, int type) {
     }
 
     return shader;
+}
+
+static ERR load_world_program(int *prog_out, const char *vertex_path, const char *fragment_path) {
+    int vert = load_shader(vertex_path, GL_VERTEX_SHADER);
+    int frag = load_shader(fragment_path, GL_FRAGMENT_SHADER);
+
+    if (vert == 0 || frag == 0) {
+        LOG_ERROR("failed to load shaders");
+        return ERR_FAIL;
+    }
+
+    int prog = *prog_out = glCreateProgram();
+
+    glAttachShader(prog, vert);
+    glAttachShader(prog, frag);
+    glLinkProgram(prog);
+
+    int link_status;
+    glGetProgramiv(prog, GL_LINK_STATUS, &link_status);
+    if (link_status == GL_FALSE) {
+        LOG_ERROR("failed to link program");
+        return ERR_FAIL;
+    }
+
+    glProgramParameteri(prog, GL_PROGRAM_SEPARABLE, GL_TRUE);
+
+    glDetachShader(prog, vert);
+    glDetachShader(prog, frag);
+    glDeleteShader(vert);
+    glDeleteShader(frag);
+
+    return ERR_SUCC;
+
 }
 
 void renderer_toggle_wireframe(struct renderer *renderer) {

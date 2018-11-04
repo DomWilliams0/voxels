@@ -125,7 +125,7 @@ void game_start(struct voxel_game *game, int argc, char **argv) {
         const double alpha = acc / dt;
         struct camera_state interpolated_camera;
         camera_interpolate(&last_camera_state, &camera.state, alpha, &interpolated_camera);
-        render(&game->renderer, &interpolated_camera, alpha);
+        renderer_render(&game->renderer, &interpolated_camera, (float) alpha);
 
         SDL_GL_SwapWindow(game->window);
     }
