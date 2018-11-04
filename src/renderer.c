@@ -59,7 +59,7 @@ ERR renderer_init(struct renderer *renderer, int width, int height) {
     return ERR_SUCC;
 }
 
-void render(struct renderer *renderer, struct camera *camera, float interpolation) {
+void render(struct renderer *renderer, struct camera_state *camera_state, double interpolation) {
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     glViewport(0, 0, window_width, window_height);
     glUseProgram(renderer->world_program);
@@ -120,7 +120,7 @@ void render(struct renderer *renderer, struct camera *camera, float interpolatio
             {
                 // offset view by chunk coords
                 mat4 view;
-                glm_mat4_copy(camera->transform, view);
+                glm_mat4_copy(camera_state->transform, view);
                 vec3 translation;
                 chunk_world_space_pos(it.current, translation);
 
