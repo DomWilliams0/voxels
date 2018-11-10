@@ -54,7 +54,8 @@ void game_start(struct voxel_game *game, int argc, char **argv) {
 
     // timestep
     double t = 0;
-    double dt = 1.0/20;
+    const int tps = 30;
+    const double dt = 1.0 / tps;
     double now_s = ((float) SDL_GetTicks()) / 1000;
     double acc = 0;
 
