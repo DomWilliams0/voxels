@@ -91,4 +91,8 @@ long ao_set_face(enum face face, char v05, char v1, char v23, char v4);
 
 char ao_get_vertex(long ao, enum face face, int vertex_idx);
 
+
+// modification
+void world_set_block(struct world *world, ivec3 pos, enum block_type type);
+
 #endif

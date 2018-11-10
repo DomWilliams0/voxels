@@ -17,7 +17,7 @@ START_TEST (test_world)
         ck_assert_ptr_nonnull(b);
 
         ck_assert(b->type == BLOCK_AIR);
-        world_set_block(world, (ivec3) {10, 10, 10}, BLOCK_GROUND);
+        demo_set_block_safely(world, (ivec3) {10, 10, 10}, BLOCK_GROUND);
 
         b = world_get_block(world, (ivec3) {10, 10, 10});
         ck_assert_ptr_nonnull(b);

@@ -30,6 +30,13 @@ static inline void glm_ivec_copy(const ivec3 src, ivec3 dst) {
 }
 
 // helper
+static inline void glm_ivec_add(const ivec3 src, const ivec3 add, ivec3 dst) {
+    dst[0] = src[0] + add[0];
+    dst[1] = src[1] + add[1];
+    dst[2] = src[2] + add[2];
+}
+
+// helper
 static inline int glm_ivec_eq(const ivec3 a, const ivec3 b) {
     return a[0] == b[0] &&
            a[1] == b[1] &&
@@ -148,14 +155,6 @@ static struct block *world_get_block_with_chunk_hint(struct world *world, struct
     return world_get_block(world, pos);
 }
 
-static void world_set_block(struct world *world, ivec3 pos, enum block_type type) {
-    struct block *b = world_get_block(world, pos);
-    if (b) {
-        b->type = type;
-        // TODO mark as dirty
-    }
-}
-
 static void demo_set_block_safely(struct world *world, ivec3 pos, enum block_type type) {
     if (!world_find_chunk(world, pos)) {
         ivec3 chunk_coord = IVEC3_COPY(pos);
@@ -163,7 +162,8 @@ static void demo_set_block_safely(struct world *world, ivec3 pos, enum block_typ
         world_add_chunk(world, chunk_coord);
     }
 
-    world_set_block(world, pos, type);
+    struct block *b = world_get_block(world, pos);
+    if (b) b->type = type;
 }
 
 static void demo_fill_range(struct world *world, const ivec3 start_pos, const ivec3 len, enum block_type type) {
@@ -508,5 +508,32 @@ char ao_get_vertex(long ao, enum face face, int vertex_idx) {
 
     long result = (byte & vertex_mask) >> vertex_shift;
     return (char) result;
+}
+
+void world_set_block(struct world *world, ivec3 pos, enum block_type type) {
+    struct chunk *chunk = world_find_chunk(world, pos);
+    if (!chunk) return;
+
+    struct block *block = world_get_block_with_chunk_hint(world, chunk, pos);
+    if (!block) return;
+
+    block->type = type;
+
+    // dirty flag to regen chunk mesh next frame
+    chunk->flags |= CHUNK_FLAG_DIRTY;
+
+    // recalculate visibility and lighting for all blocks around
+    // TODO
+    ivec3 offset;
+    struct block *offset_block;
+    for (int z = -1; z <= 1; ++z) {
+        for (int y = -1; y <= 1; ++y) {
+            for (int x = -1; x <= 1; ++x) {
+                glm_ivec_add(pos, (ivec3) {x, y, z}, offset);
+                if ((offset_block = world_get_block_with_chunk_hint(world, chunk, offset)))
+                    update_lighting_with_block(world, offset, offset_block, chunk);
+            }
+        }
+    }
 }
 

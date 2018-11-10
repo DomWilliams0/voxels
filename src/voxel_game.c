@@ -78,6 +78,12 @@ void game_start(struct voxel_game *game, int argc, char **argv) {
                             if (evt.key.type == SDL_KEYDOWN) renderer_toggle_wireframe(&game->renderer);
                             break;
 
+                        case SDLK_n: {
+                            static int block = BLOCK_OBJECT;
+                            if (evt.key.type == SDL_KEYDOWN) world_set_block(world, (ivec3) {3, 1, 2}, ++block % 3);
+                            break;
+                        }
+
                         default:
                             break;
                     }
