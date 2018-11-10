@@ -7,13 +7,14 @@
 #include "world.h"
 #include "log.h"
 #include "camera.h"
+#include "phys.hpp"
 
 static int window_width, window_height;
 
 /** returns 0 if invalid **/
 static int load_shader(const char *filename, int type);
 
-static ERR load_world_program(int *prog_out, const char *vertex_path, const char *fragment_path);
+static ERR load_program(int *prog_out, const char *vertex_path, const char *fragment_path);
 
 void GLAPIENTRY on_debug_message(GLenum source,
                                  GLenum type,
@@ -27,6 +28,24 @@ void GLAPIENTRY on_debug_message(GLenum source,
              type, severity, message);
 }
 
+static void init_dyn(struct renderer *renderer) {
+    glGenVertexArrays(1, &renderer->dyn_vao);
+    int vbos[2];
+    glGenBuffers(2, vbos);
+    renderer->dyn_vbo = vbos[0];
+    renderer->dyn_mesh_vbo = vbos[1];
+
+    // static block mesh
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->dyn_mesh_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(BLOCK_VERTICES), BLOCK_VERTICES, GL_STATIC_DRAW);
+
+    // initially empty instance data vbo
+    int word_count = 1 + 16; // colour(1) + transform(16)
+
+    glBindVertexArray(renderer->dyn_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->dyn_vbo);
+    glBufferData(GL_ARRAY_BUFFER, MAX_DYN_VOXELS * word_count * sizeof(int), NULL, GL_DYNAMIC_DRAW);
+}
 
 ERR renderer_init(struct renderer *renderer, int width, int height) {
     window_width = width;
@@ -40,10 +59,14 @@ ERR renderer_init(struct renderer *renderer, int width, int height) {
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(on_debug_message, 0);
 
-
     glClearColor(0.05, 0.05, 0.08, 1.0);
 
-    ERR result = load_world_program(&renderer->world_program, "res/shaders/world.glslv", "res/shaders/world.glslf");
+    init_dyn(renderer);
+
+    // TODO rename world.glslf
+    ERR result = load_program(&renderer->world_program, "res/shaders/world.glslv", "res/shaders/world.glslf");
+    if (result)
+        result = load_program(&renderer->dyn_program, "res/shaders/dynamic.glslv", "res/shaders/world.glslf");
 
     return result;
 }
@@ -60,13 +83,12 @@ static void set_projection_matrix(int program) {
     glUniformMatrix4fv(loc, 1, GL_FALSE, proj);
 }
 
-static void set_chunk_view(int program, mat4 camera_transform, struct chunk *chunk) {
-    // offset view by chunk coords
+static void set_view(int program, mat4 camera_transform, vec3 world_translation) {
     mat4 view;
     glm_mat4_copy(camera_transform, view);
-    vec3 translation;
-    chunk_world_space_pos(chunk, translation);
-    glm_translate(view, translation);
+    if (world_translation != NULL) {
+        glm_translate(view, world_translation);
+    }
 
     int loc = glGetUniformLocation(program, "view");
     glUniformMatrix4fv(loc, 1, GL_FALSE, &view);
@@ -90,6 +112,9 @@ static void enable_terrain_attributes() {
 }
 
 static void render_terrain(struct renderer *renderer, struct camera_state *camera_state) {
+    glUseProgram(renderer->world_program);
+    set_projection_matrix(renderer->world_program);
+
     // update chunks
     struct chunk_iterator it;
     world_chunks_first(renderer->world, &it);
@@ -116,7 +141,9 @@ static void render_terrain(struct renderer *renderer, struct camera_state *camer
         // render visible chunk
         if (chunk_has_flag(it.current, CHUNK_FLAG_VISIBLE)) {
             glBindVertexArray(render_objs->vao);
-            set_chunk_view(renderer->world_program, camera_state->transform, it.current);
+            vec3 world_translation;
+            chunk_world_space_pos(it.current, world_translation);
+            set_view(renderer->world_program, camera_state->transform, world_translation);
             glDrawArrays(GL_TRIANGLES, 0, meta->vertex_count);
         }
 
@@ -125,17 +152,69 @@ static void render_terrain(struct renderer *renderer, struct camera_state *camer
     world_chunks_clear_dirty(renderer->world);
 }
 
+static void render_entities(struct renderer *renderer, struct camera_state *camera_state, float interpolation) {
+    struct dyn_voxel_iterator it = DYN_VOXEL_ITER_INIT;
+
+    glUseProgram(renderer->dyn_program);
+    glBindVertexArray(renderer->dyn_vao);
+
+    // update vbo
+    int i = 0;
+    float staging[1 + 16];
+
+    union {
+        float f;
+        int i;
+    } f_or_i;
+
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->dyn_vbo);
+    while (world_dyn_voxels_next(renderer->world, &it)) {
+        // colour: 0
+        f_or_i.i = block_type_colour(it.current->type);
+        staging[0] = f_or_i.f;
+
+        // transform matrix: 1-16
+        phys_get_body_transform(it.current->phys_body, staging + 1);
+
+        glBufferSubData(GL_ARRAY_BUFFER, i * sizeof(staging), sizeof(staging), staging);
+        i++;
+    }
+
+    // enable attributes
+    // pos (shared)
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->dyn_mesh_vbo);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), 0);
+    glVertexAttribDivisor(0, 0);
+
+    // colour
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->dyn_vbo);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, (16 + 1) * sizeof(float), 0);
+    glVertexAttribDivisor(1, 1);
+
+    // transform
+    for (int j = 0; j < 4; ++j) {
+        glEnableVertexAttribArray(2 + j);
+        glVertexAttribPointer(2 + j, 4, GL_FLOAT, GL_FALSE, (16 + 1) * sizeof(float), 1*(sizeof(float)) + (j * sizeof(vec4)));
+        glVertexAttribDivisor(2 + j, 1);
+    }
+
+    // render
+    set_projection_matrix(renderer->dyn_program);
+    set_view(renderer->dyn_program, camera_state->transform, NULL);
+    glDrawArraysInstanced(GL_TRIANGLES, 0, CHUNK_MESH_VERTICES_PER_BLOCK, i);
+}
+
 void renderer_render(struct renderer *renderer, struct camera_state *camera_state, float interpolation) {
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     glViewport(0, 0, window_width, window_height);
-    glUseProgram(renderer->world_program);
-
-    set_projection_matrix(renderer->world_program);
 
     // chunks
     render_terrain(renderer, camera_state);
 
-    // TODO dynamic entities
+    // dynamic entities
+    render_entities(renderer, camera_state, interpolation);
 }
 
 void resize_callback(int width, int height) {
@@ -214,7 +293,7 @@ static int load_shader(const char *filename, int type) {
     return shader;
 }
 
-static ERR load_world_program(int *prog_out, const char *vertex_path, const char *fragment_path) {
+static ERR load_program(int *prog_out, const char *vertex_path, const char *fragment_path) {
     int vert = load_shader(vertex_path, GL_VERTEX_SHADER);
     int frag = load_shader(fragment_path, GL_FRAGMENT_SHADER);
 

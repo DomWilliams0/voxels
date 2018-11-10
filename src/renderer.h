@@ -7,6 +7,10 @@ struct renderer {
     struct world *world;
     int world_program;
 
+    int dyn_program;
+    int dyn_mesh_vbo;
+    int dyn_vao, dyn_vbo;
+
     int is_wireframe;
 };
 

@@ -18,11 +18,11 @@ struct chunk {
 };
 
 typedef vec_t(struct chunk *) chunk_vec_t;
-typedef vec_t(struct phys_voxel_body) phys_body_vec_t;
 
 struct world {
     struct phys_world *phys_world;
-    phys_body_vec_t phys_bodies;
+    struct dyn_voxel dynamic_voxels[MAX_DYN_VOXELS];
+    unsigned int dynamic_voxel_count;
     chunk_vec_t chunks;
 };
 
@@ -86,7 +86,8 @@ static ERR world_init(struct world *world) {
         return ERR_FAIL;
     }
 
-    vec_init(&world->phys_bodies);
+    world->dynamic_voxel_count = 0;
+    memset(world->dynamic_voxels, 0, sizeof(world->dynamic_voxels));
     vec_init(&world->chunks);
     return ERR_SUCC;
 }
@@ -191,16 +192,22 @@ static void demo_fill_range(struct world *world, const ivec3 start_pos, const iv
 }
 
 static void world_add_voxel_body(struct world *world, const ivec3 pos, enum block_type type) {
-    vec3 world_pos = {
-            (float) pos[0] / BLOCK_SIZE,
-            (float) pos[1] / BLOCK_SIZE,
-            (float) pos[2] / BLOCK_SIZE,
-    };
-    struct phys_voxel_body body = phys_add_body(world->phys_world, world_pos);
-
-    if (vec_push(&world->phys_bodies, body) != 0) {
-        LOG_ERROR("failed to add body to world->phys_bodies")
+    // limit reached
+    if (world->dynamic_voxel_count == MAX_DYN_VOXELS) {
+        LOG_WARN("max dynamic voxel body limit reached, cant spawn any more (%d)", MAX_DYN_VOXELS);
+        return;
     }
+
+    // create body
+    vec3 world_pos = {
+            (float) pos[0] * BLOCK_SIZE,
+            (float) pos[1] * BLOCK_SIZE,
+            (float) pos[2] * BLOCK_SIZE,
+    };
+    void *body = phys_add_body(world->phys_world, world_pos);
+    struct dyn_voxel *dyn = &world->dynamic_voxels[world->dynamic_voxel_count++];
+    dyn->type = type;
+    dyn->phys_body = body;
 }
 
 ERR world_load_demo(struct world **world, const char *name) {
@@ -235,7 +242,7 @@ ERR world_load_demo(struct world **world, const char *name) {
         demo_set_block_safely(w, (ivec3) {3, 4, 2}, BLOCK_OBJECT);
 
         // falling test block
-        world_add_voxel_body(w, (ivec3) {3, 8, 3}, BLOCK_OBJECT);
+        world_add_voxel_body(w, (ivec3) {0, 2, 0}, BLOCK_OBJECT);
 
 
     } else if (!strcmp(name, "yuge")) {
@@ -579,5 +586,30 @@ void world_set_block(struct world *world, ivec3 pos, enum block_type type) {
             }
         }
     }
+}
+
+static int dyn_voxels_find_next(struct world *world, int start, struct dyn_voxel **out) {
+
+    for (int i = start+1; i < MAX_DYN_VOXELS; ++i) {
+        struct dyn_voxel *dyn = &world->dynamic_voxels[i];
+        if (dyn->phys_body != NULL) {
+            *out = dyn;
+            return i;
+        }
+    }
+    *out = NULL;
+    return 0;
+}
+
+int world_dyn_voxels_next(struct world *world, struct dyn_voxel_iterator *it) {
+    it->valid = 0;
+
+    it->_progress = dyn_voxels_find_next(world, it->_progress, &it->current);
+
+    if (it->current != NULL) {
+       it->valid = 1;
+    }
+
+    return it->valid;
 }
 

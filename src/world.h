@@ -14,6 +14,7 @@
 
 #define BLOCKS_PER_CHUNK (CHUNK_WIDTH * CHUNK_DEPTH * CHUNK_HEIGHT)
 
+#define MAX_DYN_VOXELS 128
 
 struct world;
 struct chunk;
@@ -100,5 +101,22 @@ char ao_get_vertex(long ao, enum face face, int vertex_idx);
 
 // modification
 void world_set_block(struct world *world, ivec3 pos, enum block_type type);
+
+// dynamic voxels
+struct dyn_voxel {
+    enum block_type type;
+    void *phys_body;
+};
+
+struct dyn_voxel_iterator {
+    struct dyn_voxel *current;
+    int valid;
+    int _progress;
+};
+
+#define DYN_VOXEL_ITER_INIT {._progress=-1, .valid=0}
+
+int world_dyn_voxels_next(struct world *world, struct dyn_voxel_iterator *it);
+
 
 #endif

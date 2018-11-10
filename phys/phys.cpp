@@ -28,7 +28,7 @@ void phys_world_tick(struct phys_world *world, double dt) {
     world->dyn_world.update(static_cast<decimal>(dt));
 }
 
-struct phys_voxel_body phys_add_body(struct phys_world *world, float pos[3]) {
+void *phys_add_body(struct phys_world *world, float pos[3]) {
     Vector3 position(pos[0], pos[1], pos[2]);
     Quaternion rot = Quaternion::identity(); // TODO ever need to specify rotation?
     Transform transform(position, rot);
@@ -39,12 +39,12 @@ struct phys_voxel_body phys_add_body(struct phys_world *world, float pos[3]) {
 
     // TODO add collisions
 
-    return phys_voxel_body{._rigid_body = body};
+    return body;
 }
 
-void phys_get_body_transform(struct phys_voxel_body *body, float mat[16]) {
+void phys_get_body_transform(void *body, float mat[16]) {
     // TODO interpolate
-    auto *rb = static_cast<RigidBody *>(body->_rigid_body);
+    auto *rb = static_cast<RigidBody *>(body);
     rb->getTransform().getOpenGLMatrix(mat);
 }
 

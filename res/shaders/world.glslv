@@ -9,6 +9,7 @@ uniform mat4 projection;
 
 void main()
 {
+    // TODO move proj*view calculation onto cpu
     gl_Position = projection * view * vec4(vertex_pos, 1.0);
 
     const float ambient = 1;
