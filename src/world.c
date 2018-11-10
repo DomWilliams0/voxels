@@ -5,6 +5,7 @@
 #include "log.h"
 #include "chunk_mesh.h"
 #include "face.h"
+#include "phys.hpp"
 
 struct chunk {
     ivec3 pos;
@@ -75,6 +76,7 @@ static struct chunk *chunk_alloc() {
 }
 
 static void world_init(struct world *world) {
+    do_thing();
     vec_init(&world->chunks);
 }
 
