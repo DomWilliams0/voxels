@@ -39,8 +39,6 @@ ERR game_init(struct voxel_game *game, int width, int height) {
     return ERR_SUCC;
 }
 
-static void game_tick(struct voxel_game *game);
-
 void game_start(struct voxel_game *game, int argc, char **argv) {
     struct world *world;
     char *demo_name = argc > 1 ? argv[1] : "demo";
@@ -122,7 +120,7 @@ void game_start(struct voxel_game *game, int argc, char **argv) {
             last_camera_state = camera.state;
 
             camera_tick(&camera, dt);
-            game_tick(game);
+            world_tick_physics(world, dt);
 
             t += dt;
             acc -= dt;
@@ -138,10 +136,6 @@ void game_start(struct voxel_game *game, int argc, char **argv) {
 
     world_destroy(world);
     game->renderer.world = NULL; // TODO destroy renderer?
-}
-
-static void game_tick(struct voxel_game *game) {
-    // TODO
 }
 
 void game_destroy(struct voxel_game *game) {

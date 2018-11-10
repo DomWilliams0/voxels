@@ -18,8 +18,11 @@ struct chunk {
 };
 
 typedef vec_t(struct chunk *) chunk_vec_t;
+typedef vec_t(struct phys_voxel_body) phys_body_vec_t;
 
 struct world {
+    struct phys_world *phys_world;
+    phys_body_vec_t phys_bodies;
     chunk_vec_t chunks;
 };
 
@@ -75,9 +78,16 @@ static struct chunk *chunk_alloc() {
     return chunk;
 }
 
-static void world_init(struct world *world) {
-    do_thing();
+static ERR world_init(struct world *world) {
+    phys_world_init(&world->phys_world);
+    if (world->phys_world == NULL) {
+        LOG_ERROR("failed to allocate physics world")
+        return ERR_FAIL;
+    }
+
+    vec_init(&world->phys_bodies);
     vec_init(&world->chunks);
+    return ERR_SUCC;
 }
 
 static void world_add_chunk(struct world *world, ivec3 pos) {
@@ -179,6 +189,19 @@ static void demo_fill_range(struct world *world, const ivec3 start_pos, const iv
     }
 }
 
+static void world_add_voxel_body(struct world *world, const ivec3 pos, enum block_type type) {
+    vec3 world_pos = {
+            (float) pos[0] / BLOCK_SIZE,
+            (float) pos[1] / BLOCK_SIZE,
+            (float) pos[2] / BLOCK_SIZE,
+    };
+    struct phys_voxel_body body = phys_add_body(world->phys_world, world_pos);
+
+    if (vec_push(&world->phys_bodies, body) != 0) {
+        LOG_ERROR("failed to add body to world->phys_bodies")
+    }
+}
+
 ERR world_load_demo(struct world **world, const char *name) {
     struct world *w = malloc(sizeof(struct world));
     if (!w) {
@@ -186,9 +209,13 @@ ERR world_load_demo(struct world **world, const char *name) {
         return ERR_FAIL;
     }
 
+    if (!world_init(w)) {
+        free(w);
+        return ERR_FAIL;
+    }
+
     int result = ERR_SUCC;
 
-    world_init(w);
 
     if (!strcmp(name, "demo")) {
         demo_fill_range(w, (ivec3) {0, 0, 0}, (ivec3) {10, 1, 10}, BLOCK_GROUND);
@@ -205,6 +232,11 @@ ERR world_load_demo(struct world **world, const char *name) {
         demo_set_block_safely(w, (ivec3) {3, 4, 4}, BLOCK_OBJECT);
         demo_set_block_safely(w, (ivec3) {2, 4, 3}, BLOCK_OBJECT);
         demo_set_block_safely(w, (ivec3) {3, 4, 2}, BLOCK_OBJECT);
+
+        // falling test block
+        world_add_voxel_body(w, (ivec3) {3, 8, 3}, BLOCK_OBJECT);
+
+
     } else if (!strcmp(name, "yuge")) {
         demo_fill_range(w, (ivec3) {0, 0, 0}, (ivec3) {60, 60, 60}, BLOCK_OBJECT);
     } else if (!strcmp(name, "building")) {
@@ -249,7 +281,16 @@ void world_destroy(struct world *world) {
                 free(c);
             }
         vec_deinit(&world->chunks);
+
+        if (world->phys_world) {
+            phys_world_destroy(world->phys_world);
+            world->phys_world = NULL;
+        }
     }
+}
+
+void world_tick_physics(struct world *world, double dt) {
+    phys_world_tick(world->phys_world, dt);
 }
 
 int chunk_has_flag(struct chunk *chunk, enum chunk_flag flag) {

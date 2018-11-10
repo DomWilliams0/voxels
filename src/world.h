@@ -22,6 +22,8 @@ ERR world_load_demo(struct world **world, const char *name);
 
 void world_destroy(struct world *world);
 
+void world_tick_physics(struct world *world, double dt);
+
 enum chunk_flag {
     CHUNK_FLAG_NEW = 1 << 0,
     CHUNK_FLAG_VISIBLE = 1 << 1,
