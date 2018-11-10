@@ -15,6 +15,19 @@ static int load_shader(const char *filename, int type);
 
 static ERR load_world_program(int *prog_out, const char *vertex_path, const char *fragment_path);
 
+void GLAPIENTRY on_debug_message(GLenum source,
+                                 GLenum type,
+                                 GLuint id,
+                                 GLenum severity,
+                                 GLsizei length,
+                                 const GLchar *message,
+                                 const void *userParam) {
+    LOG_INFO("GL: %s type = 0x%x, severity = 0x%x, message = %s",
+             (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
+             type, severity, message);
+}
+
+
 ERR renderer_init(struct renderer *renderer, int width, int height) {
     window_width = width;
     window_height = height;
@@ -24,6 +37,9 @@ ERR renderer_init(struct renderer *renderer, int width, int height) {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
+    glEnable(GL_DEBUG_OUTPUT);
+    glDebugMessageCallback(on_debug_message, 0);
+
 
     glClearColor(0.05, 0.05, 0.08, 1.0);
 
