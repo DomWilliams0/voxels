@@ -204,10 +204,10 @@ static void world_add_voxel_body(struct world *world, const ivec3 pos, enum bloc
             (float) pos[1] * BLOCK_SIZE,
             (float) pos[2] * BLOCK_SIZE,
     };
-    void *body = phys_add_body(world->phys_world, world_pos);
+
     struct dyn_voxel *dyn = &world->dynamic_voxels[world->dynamic_voxel_count++];
     dyn->type = type;
-    dyn->phys_body = body;
+    dyn->phys_body = phys_add_body(world->phys_world, world_pos);
 }
 
 ERR world_load_demo(struct world **world, const char *name) {
@@ -592,7 +592,7 @@ static int dyn_voxels_find_next(struct world *world, int start, struct dyn_voxel
 
     for (int i = start+1; i < MAX_DYN_VOXELS; ++i) {
         struct dyn_voxel *dyn = &world->dynamic_voxels[i];
-        if (dyn->phys_body != NULL) {
+        if (dyn->phys_body.rigid_body != NULL) {
             *out = dyn;
             return i;
         }

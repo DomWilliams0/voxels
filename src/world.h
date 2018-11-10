@@ -2,6 +2,7 @@
 #define VOXEL_GAME_WORLD_H
 
 #include <cglm/cglm.h>
+#include "phys.hpp"
 #include "error.h"
 #include "face.h"
 
@@ -105,7 +106,7 @@ void world_set_block(struct world *world, ivec3 pos, enum block_type type);
 // dynamic voxels
 struct dyn_voxel {
     enum block_type type;
-    void *phys_body;
+    struct phys_dyn_voxel phys_body;
 };
 
 struct dyn_voxel_iterator {

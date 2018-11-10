@@ -28,7 +28,7 @@ void phys_world_tick(struct phys_world *world, double dt) {
     world->dyn_world.update(static_cast<decimal>(dt));
 }
 
-void *phys_add_body(struct phys_world *world, float pos[3]) {
+struct phys_dyn_voxel phys_add_body(struct phys_world *world, float pos[3]) {
     Vector3 position(pos[0], pos[1], pos[2]);
     Quaternion rot = Quaternion::identity(); // TODO ever need to specify rotation?
     Transform transform(position, rot);
@@ -39,13 +39,26 @@ void *phys_add_body(struct phys_world *world, float pos[3]) {
 
     // TODO add collisions
 
-    return body;
+    return phys_dyn_voxel{
+            .rigid_body = body,
+            .last_transform = new Transform,
+    };
 }
 
-void phys_get_body_transform(void *body, float mat[16]) {
-    // TODO interpolate
-    auto *rb = static_cast<RigidBody *>(body);
-    rb->getTransform().getOpenGLMatrix(mat);
+void phys_get_body_transform(struct phys_dyn_voxel *dyn_voxel, float *mat, float interpolation) {
+    auto *rb = static_cast<RigidBody *>(dyn_voxel->rigid_body);
+    auto &current_transform = rb->getTransform();
+    auto *last_transform = static_cast<Transform *>(dyn_voxel->last_transform);
+
+    // interpolate
+    Transform::interpolateTransforms(
+            *last_transform,
+            current_transform,
+            interpolation
+    ).getOpenGLMatrix(mat);
+
+    // update last_transform
+    *static_cast<Transform *>(dyn_voxel->last_transform) = current_transform;
 }
 
 #ifdef __cplusplus

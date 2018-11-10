@@ -174,7 +174,7 @@ static void render_entities(struct renderer *renderer, struct camera_state *came
         staging[0] = f_or_i.f;
 
         // transform matrix: 1-16
-        phys_get_body_transform(it.current->phys_body, staging + 1);
+        phys_get_body_transform(&it.current->phys_body, staging + 1, interpolation);
 
         glBufferSubData(GL_ARRAY_BUFFER, i * sizeof(staging), sizeof(staging), staging);
         i++;
