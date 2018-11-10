@@ -5,7 +5,6 @@
 
 struct renderer {
     struct world *world;
-    int world_vao;
     int world_program;
 
     int is_wireframe;

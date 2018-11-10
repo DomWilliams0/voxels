@@ -43,7 +43,6 @@ ERR renderer_init(struct renderer *renderer, int width, int height) {
 
     glClearColor(0.05, 0.05, 0.08, 1.0);
 
-    glGenVertexArrays(1, &renderer->world_vao);
     ERR result = load_world_program(&renderer->world_program, "res/shaders/world.glslv", "res/shaders/world.glslf");
 
     return result;
@@ -61,8 +60,19 @@ static void set_projection_matrix(int program) {
     glUniformMatrix4fv(loc, 1, GL_FALSE, proj);
 }
 
-static void prepare_chunk_render(int program, mat4 camera_transform, struct chunk *chunk) {
-    // enable attributes
+static void set_chunk_view(int program, mat4 camera_transform, struct chunk *chunk) {
+    // offset view by chunk coords
+    mat4 view;
+    glm_mat4_copy(camera_transform, view);
+    vec3 translation;
+    chunk_world_space_pos(chunk, translation);
+    glm_translate(view, translation);
+
+    int loc = glGetUniformLocation(program, "view");
+    glUniformMatrix4fv(loc, 1, GL_FALSE, &view);
+}
+
+static void enable_terrain_attributes() {
     size_t word_size = sizeof(float);
     size_t stride = CHUNK_MESH_WORDS_PER_INSTANCE * word_size;
 
@@ -77,22 +87,6 @@ static void prepare_chunk_render(int program, mat4 camera_transform, struct chun
     // ao
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 1, GL_FLOAT, false, stride, (3L + 1L) * word_size);
-
-    // offset view by chunk coords
-    mat4 view;
-    glm_mat4_copy(camera_transform, view);
-    vec3 translation;
-    chunk_world_space_pos(chunk, translation);
-    glm_translate(view, translation);
-
-    int loc = glGetUniformLocation(program, "view");
-    glUniformMatrix4fv(loc, 1, GL_FALSE, &view);
-}
-static void cleanup_terrain_render() {
-
-    glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
-    glDisableVertexAttribArray(2);
 }
 
 static void render_terrain(struct renderer *renderer, struct camera_state *camera_state) {
@@ -100,41 +94,41 @@ static void render_terrain(struct renderer *renderer, struct camera_state *camer
     struct chunk_iterator it;
     world_chunks_first(renderer->world, &it);
     while (it.current) {
-        int *vbo = chunk_vbo(it.current);
+        struct chunk_render_objs *render_objs = chunk_render_objs(it.current);
         struct chunk_mesh_meta *meta = chunk_mesh_meta(it.current);
 
-        // new vbo for chunk
+        // new vao and vbo for chunk
         if (chunk_has_flag(it.current, CHUNK_FLAG_NEW)) {
-            glGenBuffers(1, vbo);
+            glGenBuffers(1, &render_objs->vbo);
+            glGenVertexArrays(1, &render_objs->vao);
             chunk_init_lighting(renderer->world, it.current);
         }
 
         // recalculate chunk terrain mesh
         if (chunk_has_flag(it.current, CHUNK_FLAG_DIRTY)) {
-            glBindBuffer(GL_ARRAY_BUFFER, *vbo);
+            glBindVertexArray(render_objs->vao);
+            glBindBuffer(GL_ARRAY_BUFFER, render_objs->vbo);
+            enable_terrain_attributes();
             int *mesh = chunk_mesh_gen(it.current, meta);
             glBufferData(GL_ARRAY_BUFFER, meta->vertex_count * sizeof(int), mesh, GL_STATIC_DRAW);
         }
 
         // render visible chunk
         if (chunk_has_flag(it.current, CHUNK_FLAG_VISIBLE)) {
-            glBindBuffer(GL_ARRAY_BUFFER, *vbo);
-
-            prepare_chunk_render(renderer->world_program, camera_state->transform, it.current);
+            glBindVertexArray(render_objs->vao);
+            set_chunk_view(renderer->world_program, camera_state->transform, it.current);
             glDrawArrays(GL_TRIANGLES, 0, meta->vertex_count);
         }
 
         world_chunks_next(renderer->world, &it);
     }
     world_chunks_clear_dirty(renderer->world);
-    cleanup_terrain_render();
 }
 
 void renderer_render(struct renderer *renderer, struct camera_state *camera_state, float interpolation) {
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     glViewport(0, 0, window_width, window_height);
     glUseProgram(renderer->world_program);
-    glBindVertexArray(renderer->world_vao);
 
     set_projection_matrix(renderer->world_program);
 

@@ -37,9 +37,13 @@ struct chunk_iterator {
     int _progress;
 };
 
+struct chunk_render_objs {
+    int vao, vbo;
+};
+
 int chunk_has_flag(struct chunk *chunk, enum chunk_flag flag);
 
-int *chunk_vbo(struct chunk *chunk);
+struct chunk_render_objs *chunk_render_objs(struct chunk *chunk);
 
 struct chunk_mesh_meta *chunk_mesh_meta(struct chunk *chunk);
 

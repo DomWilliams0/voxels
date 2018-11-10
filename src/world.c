@@ -9,8 +9,8 @@
 
 struct chunk {
     ivec3 pos;
-    int vbo;
     int flags;
+    struct chunk_render_objs render_objs;
     struct chunk_mesh_meta mesh;
 
     struct block blocks[BLOCKS_PER_CHUNK];
@@ -62,7 +62,8 @@ static struct chunk *chunk_alloc() {
     if (!chunk) {
         LOG_ERROR("failed to alloc chunk");
     } else {
-        chunk->vbo = 0;
+        chunk->render_objs.vao = 0;
+        chunk->render_objs.vbo = 0;
         chunk->flags = CHUNK_FLAG_NEW | CHUNK_FLAG_DIRTY | CHUNK_FLAG_VISIBLE;
         glm_ivec_zero(chunk->pos);
 
@@ -297,8 +298,8 @@ int chunk_has_flag(struct chunk *chunk, enum chunk_flag flag) {
     return (chunk->flags & flag) == flag;
 }
 
-int *chunk_vbo(struct chunk *chunk) {
-    return &chunk->vbo;
+struct chunk_render_objs *chunk_render_objs(struct chunk *chunk) {
+    return &chunk->render_objs;
 }
 
 struct chunk_mesh_meta *chunk_mesh_meta(struct chunk *chunk) {
