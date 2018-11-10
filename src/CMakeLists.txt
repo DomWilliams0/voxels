@@ -4,7 +4,9 @@ project(voxel_lib C CXX)
 set(SRCS voxel_game.h voxel_game.c error.h log.h renderer.c renderer.h world.c world.h chunk_mesh.c chunk_mesh.h face.h face.c camera.c camera.h)
 
 # resources
-file(COPY ../res DESTINATION ${CMAKE_BINARY_DIR})
+#file(COPY ../res DESTINATION ${CMAKE_BINARY_DIR})
+ADD_CUSTOM_TARGET(link_target ALL
+        COMMAND ${CMAKE_COMMAND} -E create_symlink ../res ${CMAKE_BINARY_DIR}/res)
 
 
 file(GLOB LIB_SRCS ${LIB}/gclm/src/* ${LIB}/vec/src/*)
