@@ -11,6 +11,7 @@ ADD_CUSTOM_TARGET(link_target ALL
 
 file(GLOB LIB_SRCS ${LIB}/gclm/src/* ${LIB}/vec/src/*)
 add_library(${PROJECT_NAME} ${SRCS} ${LIB_SRCS})
+target_compile_options(${PROJECT_NAME} PRIVATE -O1)
 
 include_directories(.)
 
