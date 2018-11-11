@@ -23,7 +23,12 @@ struct world {
     struct phys_world *phys_world;
     struct dyn_voxel dynamic_voxels[MAX_DYN_VOXELS];
     unsigned int dynamic_voxel_count;
-    chunk_vec_t chunks;
+
+    ivec3 max_block_dims;
+    ivec3 max_chunk_dims;
+    size_t chunk_count;
+    struct chunk **chunks_arr; // TODO rename once all errors fixed
+    chunk_vec_t loaded_chunks;
 };
 
 // helper
@@ -79,23 +84,71 @@ static struct chunk *chunk_alloc() {
     return chunk;
 }
 
-static ERR world_init(struct world *world) {
+static ERR world_init(struct world *world, ivec3 max_block_dims) {
+    // round to nearest multiple of chunk size
+    max_block_dims[0] = (max_block_dims[0] >> CHUNK_WIDTH_SHIFT) << CHUNK_WIDTH_SHIFT;
+    max_block_dims[1] = (max_block_dims[1] >> CHUNK_HEIGHT_SHIFT) << CHUNK_HEIGHT_SHIFT;
+    max_block_dims[2] = (max_block_dims[2] >> CHUNK_WIDTH_SHIFT) << CHUNK_WIDTH_SHIFT;
+
+    if (max_block_dims[0] <= 0 ||
+        max_block_dims[1] <= 0 ||
+        max_block_dims[2] <= 0) {
+        LOG_ERROR("world size limit cannot <= 0");
+        return ERR_FAIL;
+    }
+
+
     phys_world_init(&world->phys_world);
     if (world->phys_world == NULL) {
         LOG_ERROR("failed to allocate physics world")
         return ERR_FAIL;
     }
-
     world->dynamic_voxel_count = 0;
     memset(world->dynamic_voxels, 0, sizeof(world->dynamic_voxels));
-    vec_init(&world->chunks);
+
+
+    glm_ivec_copy(max_block_dims, world->max_block_dims);
+    world->max_chunk_dims[0] = max_block_dims[0] / CHUNK_WIDTH;
+    world->max_chunk_dims[1] = max_block_dims[1] / CHUNK_HEIGHT;
+    world->max_chunk_dims[2] = max_block_dims[2] / CHUNK_DEPTH;
+
+    size_t chunk_count = ((size_t) world->max_chunk_dims[0]) *
+                         ((size_t) world->max_chunk_dims[1]) *
+                         ((size_t) world->max_chunk_dims[2]);
+    world->chunk_count = chunk_count;
+    // TODO check if overflowed
+
+    vec_init(&world->loaded_chunks);
+
+    if ((world->chunks_arr = calloc(chunk_count, sizeof(void *))) == NULL) {
+        LOG_ERROR("failed to allocate chunks array of size %lu", chunk_count);
+        world_destroy(world);
+        return ERR_FAIL;
+    }
+
     return ERR_SUCC;
 }
 
-static void world_add_chunk(struct world *world, ivec3 pos) {
+inline static int world_get_chunk_index(struct world *world, const ivec3 chunk_pos) {
+    return (world->max_chunk_dims[0] * world->max_chunk_dims[1] * chunk_pos[2]) +
+           (world->max_chunk_dims[0] * chunk_pos[1]) + chunk_pos[0];
+}
+
+inline static int world_is_chunk_pos_in_range(struct world *world, const ivec3 chunk_pos) {
+    return chunk_pos[0] < world->max_chunk_dims[0] &&
+           chunk_pos[1] < world->max_chunk_dims[1] &&
+           chunk_pos[2] < world->max_chunk_dims[2];
+}
+
+// expects pos to be in range
+static struct chunk *world_add_chunk(struct world *world, ivec3 pos) {
     struct chunk *c = chunk_alloc();
-    glm_ivec_copy(pos, c->pos);
-    vec_push(&world->chunks, c);
+    if (c) {
+        glm_ivec_copy(pos, c->pos);
+        world->chunks_arr[world_get_chunk_index(world, pos)] = c;
+        vec_push(&world->loaded_chunks, c);
+    }
+    return c;
 }
 
 // mods each coord to chunk range
@@ -118,32 +171,32 @@ static void resolve_chunk_coords(ivec3 pos) {
     pos[2] >>= CHUNK_WIDTH_SHIFT;
 }
 
-static struct chunk *world_find_chunk(struct world *world, const ivec3 block_pos) {
+static struct chunk *world_find_chunk(struct world *world, const ivec3 block_pos, int *was_out_of_range) {
     ivec3 chunk_pos = IVEC3_COPY(block_pos);
     resolve_chunk_coords(chunk_pos);
 
-    int i;
-    struct chunk *c;
-    vec_foreach(&world->chunks, c, i) {
-            if (c->pos[0] == chunk_pos[0] &&
-                c->pos[1] == chunk_pos[1] &&
-                c->pos[2] == chunk_pos[2])
-                return c;
-        }
+    if (!world_is_chunk_pos_in_range(world, chunk_pos)) {
+        if (was_out_of_range) *was_out_of_range = 1;
+        return NULL;
+    }
 
-    return NULL;
+    int idx = world_get_chunk_index(world, chunk_pos);
+    if (idx < 0 || idx >= world->chunk_count)
+        return NULL;
+
+    return world->chunks_arr[idx];
 }
 
+// assumes pos is in the range of a chunk
 static struct block *chunk_get_block(struct chunk *chunk, const ivec3 pos) {
     int idx = (CHUNK_WIDTH * CHUNK_HEIGHT * pos[2]) + (CHUNK_WIDTH * pos[1]) + pos[0];
-    if (idx < 0 || idx >= BLOCKS_PER_CHUNK)
-        return NULL;
+//    if (idx < 0 || idx >= BLOCKS_PER_CHUNK) return NULL;
 
     return &chunk->blocks[idx];
 }
 
 static struct block *world_get_block(struct world *world, const ivec3 pos) {
-    struct chunk *chunk = world_find_chunk(world, pos);
+    struct chunk *chunk = world_find_chunk(world, pos, NULL);
     if (!chunk) return NULL;
 
     ivec3 chunk_local_pos = IVEC3_COPY(pos);
@@ -170,13 +223,39 @@ static struct block *world_get_block_with_chunk_hint(struct world *world, struct
 }
 
 static void demo_set_block_safely(struct world *world, ivec3 pos, enum block_type type) {
-    if (!world_find_chunk(world, pos)) {
-        ivec3 chunk_coord = IVEC3_COPY(pos);
-        resolve_chunk_coords(chunk_coord);
-        world_add_chunk(world, chunk_coord);
+    struct block *b = NULL;
+    struct chunk *c = NULL;
+
+    // attempt to get block
+    b = world_get_block(world, pos);
+
+    if (!b) {
+        // check if chunk is out of range
+        int out_of_range = 0;
+        c = world_find_chunk(world, pos, &out_of_range);
+
+        if (out_of_range) {
+            LOG_WARN("block %d,%d,%d is outside of world's boundaries %d,%d,%d",
+                     pos[0], pos[1], pos[2],
+                     world->max_block_dims[0], world->max_block_dims[1], world->max_block_dims[2])
+            return;
+        }
+
+            // chunk is in range but doesn't exist yet
+        else if (!c) {
+            ivec3 chunk_coord = IVEC3_COPY(pos);
+            resolve_chunk_coords(chunk_coord);
+            c = world_add_chunk(world, chunk_coord);
+            if (c) {
+                world_to_chunk_coords(pos);
+                b = chunk_get_block(c, pos);
+
+            }
+        } else {
+            LOG_WARN("something went wrong");
+        }
     }
 
-    struct block *b = world_get_block(world, pos);
     if (b) b->type = type;
 }
 
@@ -217,7 +296,10 @@ ERR world_load_demo(struct world **world, const char *name) {
         return ERR_FAIL;
     }
 
-    if (!world_init(w)) {
+    // TODO test this actual limit
+    ivec3 demo_block_limit = {1000, 1000, 1000};
+
+    if (!world_init(w, demo_block_limit)) {
         free(w);
         return ERR_FAIL;
     }
@@ -282,13 +364,15 @@ ERR world_load_demo(struct world **world, const char *name) {
 
 void world_destroy(struct world *world) {
     if (world) {
-        // TODO use chunk_dealloc function
-        struct chunk *c;
-        int i;
-        vec_foreach(&world->chunks, c, i) {
-                free(c);
+        if (world->chunks_arr) {
+            struct chunk *c;
+            for (int i = 0; i < world->chunk_count; ++i) {
+                c = world->chunks_arr[i];
+                if (c) free(c);
             }
-        vec_deinit(&world->chunks);
+            free(world->chunks_arr);
+            world->chunks_arr = NULL;
+        }
 
         if (world->phys_world) {
             phys_world_destroy(world->phys_world);
@@ -320,17 +404,17 @@ void chunk_world_space_pos(struct chunk *chunk, vec3 out) {
 }
 
 void world_chunks_first(struct world *world, struct chunk_iterator *it) {
-    if (world->chunks.length > 0) {
+    if (world->loaded_chunks.length > 0) {
         it->_progress = 1;
-        it->current = vec_first(&world->chunks);
+        it->current = vec_first(&world->loaded_chunks);
     } else {
         it->current = NULL;
     }
 }
 
 void world_chunks_next(struct world *world, struct chunk_iterator *it) {
-    if (it->_progress < world->chunks.length) {
-        it->current = world->chunks.data[it->_progress++];
+    if (it->_progress < world->loaded_chunks.length) {
+        it->current = world->loaded_chunks.data[it->_progress++];
     } else {
         it->current = NULL;
     }
@@ -340,7 +424,7 @@ void world_chunks_clear_dirty(struct world *world) {
     int i;
     struct chunk *c;
     int to_clear = ~(CHUNK_FLAG_NEW | CHUNK_FLAG_DIRTY);
-    vec_foreach(&world->chunks, c, i) {
+    vec_foreach(&world->loaded_chunks, c, i) {
             c->flags &= to_clear;
         }
 }
@@ -562,7 +646,7 @@ char ao_get_vertex(long ao, enum face face, int vertex_idx) {
 }
 
 void world_set_block(struct world *world, ivec3 pos, enum block_type type) {
-    struct chunk *chunk = world_find_chunk(world, pos);
+    struct chunk *chunk = world_find_chunk(world, pos, NULL);
     if (!chunk) return;
 
     struct block *block = world_get_block_with_chunk_hint(world, chunk, pos);
