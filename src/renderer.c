@@ -23,9 +23,10 @@ void GLAPIENTRY on_debug_message(GLenum source,
                                  GLsizei length,
                                  const GLchar *message,
                                  const void *userParam) {
-    LOG_INFO("GL: %s type = 0x%x, severity = 0x%x, message = %s",
-             (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
-             type, severity, message);
+    if (severity == GL_DEBUG_SEVERITY_HIGH)
+        LOG_INFO("GL: %s type = 0x%x, severity = 0x%x, message = %s",
+                 (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
+                 type, severity, message);
 }
 
 static void init_dyn(struct renderer *renderer) {
