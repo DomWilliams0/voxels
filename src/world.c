@@ -187,10 +187,17 @@ static struct chunk *world_find_chunk(struct world *world, const ivec3 block_pos
     return world->chunks_arr[idx];
 }
 
+#define CHUNK_IDX(pos) ((CHUNK_WIDTH * CHUNK_HEIGHT * pos[2]) + (CHUNK_WIDTH * pos[1]) + pos[0])
+
 // assumes pos is in the range of a chunk
+static struct block *chunk_get_block_unsafe(struct chunk *chunk, const ivec3 pos) {
+    return &chunk->blocks[CHUNK_IDX(pos)];
+}
+
+// checks if pos in in the range of a chunk
 static struct block *chunk_get_block(struct chunk *chunk, const ivec3 pos) {
-    int idx = (CHUNK_WIDTH * CHUNK_HEIGHT * pos[2]) + (CHUNK_WIDTH * pos[1]) + pos[0];
-//    if (idx < 0 || idx >= BLOCKS_PER_CHUNK) return NULL;
+    int idx = CHUNK_IDX(pos);
+    if (idx < 0 || idx >= BLOCKS_PER_CHUNK) return NULL;
 
     return &chunk->blocks[idx];
 }
@@ -202,7 +209,7 @@ static struct block *world_get_block(struct world *world, const ivec3 pos) {
     ivec3 chunk_local_pos = IVEC3_COPY(pos);
     world_to_chunk_coords(chunk_local_pos);
 
-    return chunk_get_block(chunk, chunk_local_pos);
+    return chunk_get_block_unsafe(chunk, chunk_local_pos);
 }
 
 // hint can be NULL
@@ -215,7 +222,7 @@ static struct block *world_get_block_with_chunk_hint(struct world *world, struct
             ivec3 chunk_local_pos = IVEC3_COPY(pos);
             world_to_chunk_coords(chunk_local_pos);
 
-            return chunk_get_block(hint, chunk_local_pos);
+            return chunk_get_block_unsafe(hint, chunk_local_pos);
         }
     }
 
@@ -248,7 +255,7 @@ static void demo_set_block_safely(struct world *world, ivec3 pos, enum block_typ
             c = world_add_chunk(world, chunk_coord);
             if (c) {
                 world_to_chunk_coords(pos);
-                b = chunk_get_block(c, pos);
+                b = chunk_get_block_unsafe(c, pos);
 
             }
         } else {
@@ -595,7 +602,7 @@ void chunk_init_lighting(struct world *world, struct chunk *chunk) {
         glm_ivec_copy(chunk_pos, world_pos);
         chunk_to_world_coords(chunk, world_pos);
 
-        block = chunk_get_block(chunk, chunk_pos);
+        block = chunk_get_block_unsafe(chunk, chunk_pos);
         update_lighting_with_block(world, world_pos, block, chunk);
     }
 }
