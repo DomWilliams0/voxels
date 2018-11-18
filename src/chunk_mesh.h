@@ -3,7 +3,7 @@
 
 #include "world.h"
 
-#define BLOCK_SIZE (0.1f)
+#define BLOCK_SIZE (0.25f)
 
 // vec3f (pos) + vec4b (colour) + float (ao)
 #define CHUNK_MESH_WORDS_PER_INSTANCE (3 + 1 + 1)

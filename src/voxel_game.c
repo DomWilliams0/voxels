@@ -50,7 +50,7 @@ void game_start(struct voxel_game *game, int argc, char **argv) {
 
     struct camera_state last_camera_state = {0};
     struct camera camera;
-    camera_init(&camera, (vec3) {-2, 0, 0}, (vec3) {-0.3f, 0, 1});
+    camera_init(&camera, (vec3) {-4, 3, 0.75f}, (vec3) {-0.3f, -0.5f, 1});
 
     // timestep
     double t = 0;
