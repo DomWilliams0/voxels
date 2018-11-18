@@ -137,6 +137,9 @@ static void render_terrain(struct renderer *renderer, struct camera_state *camer
             enable_terrain_attributes();
             int *mesh = chunk_mesh_gen(it.current, meta);
             glBufferData(GL_ARRAY_BUFFER, meta->vertex_count * sizeof(int), mesh, GL_STATIC_DRAW);
+
+            // TODO move out of render into tick?
+            chunk_update_collision_mesh(renderer->world, it.current);
         }
 
         // render visible chunk

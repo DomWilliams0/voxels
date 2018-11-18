@@ -15,7 +15,7 @@
 
 #define BLOCKS_PER_CHUNK (CHUNK_WIDTH * CHUNK_DEPTH * CHUNK_HEIGHT)
 
-#define MAX_DYN_VOXELS 128
+#define MAX_DYN_VOXELS 800
 
 struct world;
 struct chunk;
@@ -79,7 +79,10 @@ struct block {
 };
 
 
+// TODO return ptr to avoid copy
 void chunk_get_block_idx(struct chunk *chunk, int idx, struct block *out);
+
+int chunk_is_solid_at(struct chunk *chunk, ivec3 block_pos);
 
 void chunk_get_pos(struct chunk *chunk, ivec3 out);
 
@@ -87,6 +90,8 @@ void chunk_get_pos(struct chunk *chunk, ivec3 out);
 void expand_flat_index(uint idx, ivec3 out);
 
 void chunk_init_lighting(struct world *world, struct chunk *chunk);
+
+void chunk_update_collision_mesh(struct world *world, struct chunk *chunk);
 
 // all bits set = AO_VERTEX_NONE for each
 #define AO_BLOCK_NONE ((1L << AO_BIT_COUNT)-1)

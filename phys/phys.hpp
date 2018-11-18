@@ -22,6 +22,10 @@ struct phys_dyn_voxel phys_add_body(struct phys_world *world, float pos[3]);
 
 void phys_get_body_transform(struct phys_dyn_voxel *dyn_voxel, float *mat, float interpolation);
 
+void *phys_update_chunk_collision_mesh(struct phys_world *world, float *offset, void **old_state,
+                                       float *vertices, unsigned int vertex_count,
+                                       int *indices, unsigned int triangle_count);
+
 
 #ifdef __cplusplus
 }

@@ -6,12 +6,18 @@
 #include "chunk_mesh.h"
 #include "face.h"
 #include "phys.hpp"
+#include "collision_mesh.h"
+
+// for external modules to access
+// TODO tidy
+const float block_size = BLOCK_SIZE;
 
 struct chunk {
     ivec3 pos;
     int flags;
     struct chunk_render_objs render_objs;
-    struct chunk_mesh_meta mesh;
+    struct chunk_mesh_meta mesh; // TODO rename
+    struct collision_mesh collision_mesh;
 
     struct block blocks[BLOCKS_PER_CHUNK];
 
@@ -130,6 +136,8 @@ static ERR world_init(struct world *world, ivec3 max_block_dims) {
 }
 
 inline static int world_get_chunk_index(struct world *world, const ivec3 chunk_pos) {
+    // TODO is this equally valid and cheaper?
+    //    return chunk_pos[0] + world->max_chunk_dims[0] * (chunk_pos[1] + world->max_chunk_dims[1] * chunk_pos[2]);
     return (world->max_chunk_dims[0] * world->max_chunk_dims[1] * chunk_pos[2]) +
            (world->max_chunk_dims[0] * chunk_pos[1]) + chunk_pos[0];
 }
@@ -286,9 +294,9 @@ static void world_add_voxel_body(struct world *world, const ivec3 pos, enum bloc
 
     // create body
     vec3 world_pos = {
-            (float) pos[0] * BLOCK_SIZE,
-            (float) pos[1] * BLOCK_SIZE,
-            (float) pos[2] * BLOCK_SIZE,
+            (float) pos[0] * BLOCK_SIZE * 2,
+            (float) pos[1] * BLOCK_SIZE * 2,
+            (float) pos[2] * BLOCK_SIZE * 2,
     };
 
     struct dyn_voxel *dyn = &world->dynamic_voxels[world->dynamic_voxel_count++];
@@ -330,12 +338,14 @@ ERR world_load_demo(struct world **world, const char *name) {
         demo_set_block_safely(w, (ivec3) {2, 4, 3}, BLOCK_OBJECT);
         demo_set_block_safely(w, (ivec3) {3, 4, 2}, BLOCK_OBJECT);
 
-        // falling test block
+        // falling test blocks
         world_add_voxel_body(w, (ivec3) {0, 2, 0}, BLOCK_OBJECT);
+        world_add_voxel_body(w, (ivec3) {3, 8, 3}, BLOCK_GROUND);
+        world_add_voxel_body(w, (ivec3) {9,3,9}, BLOCK_OBJECT);
 
 
     } else if (!strcmp(name, "yuge")) {
-        demo_fill_range(w, (ivec3) {0, 0, 0}, (ivec3) {60, 60, 60}, BLOCK_OBJECT);
+        demo_fill_range(w, (ivec3) {0, 0, 0}, (ivec3) {400, 4, 400}, BLOCK_OBJECT);
     } else if (!strcmp(name, "building")) {
         int ground = 2;
         demo_fill_range(w, (ivec3) {0, 0, 0}, (ivec3) {100, ground, 100}, BLOCK_GROUND);
@@ -455,6 +465,13 @@ int block_type_opaque(enum block_type type) {
 
 void chunk_get_block_idx(struct chunk *chunk, int idx, struct block *out) {
    *out = chunk->blocks[idx];
+}
+
+int chunk_is_solid_at(struct chunk *chunk, ivec3 block_pos) {
+   // TODO currently all opaque blocks are also solid
+   // when this changes, add block_type_solid
+    struct block *b = chunk_get_block(chunk, block_pos);
+    return b && block_type_opaque(b->type); // TODO return what for blocks outside the world
 }
 
 void chunk_get_pos(struct chunk *chunk, ivec3 out) {
@@ -605,6 +622,18 @@ void chunk_init_lighting(struct world *world, struct chunk *chunk) {
         block = chunk_get_block_unsafe(chunk, chunk_pos);
         update_lighting_with_block(world, world_pos, block, chunk);
     }
+}
+
+void chunk_update_collision_mesh(struct world *world, struct chunk *chunk) {
+    collision_mesh_dispose(&chunk->collision_mesh);
+    collision_mesh_init(&chunk->collision_mesh, chunk);
+
+    vec3 chunk_real_pos = {
+            (chunk->pos[0] * CHUNK_WIDTH) * BLOCK_SIZE,
+            (chunk->pos[1] * CHUNK_HEIGHT) * BLOCK_SIZE,
+            (chunk->pos[2] * CHUNK_DEPTH) * BLOCK_SIZE,
+    };
+    collision_mesh_attach(world->phys_world, &chunk->collision_mesh, chunk_real_pos);
 }
 
 long ao_set_face(enum face face, char v05, char v1, char v23, char v4) {
