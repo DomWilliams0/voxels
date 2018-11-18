@@ -59,6 +59,7 @@ ERR renderer_init(struct renderer *renderer, int width, int height) {
     glCullFace(GL_BACK);
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(on_debug_message, 0);
+    glEnable(GL_MULTISAMPLE);
 
     glClearColor(0.05, 0.05, 0.08, 1.0);
 
